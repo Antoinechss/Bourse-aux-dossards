@@ -1,6 +1,6 @@
 """Moteur de templates Jinja, partagé par toutes les pages."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -22,9 +22,20 @@ def local_time(value: datetime) -> str:
     return value.astimezone(ZoneInfo("Europe/Paris")).strftime("%d/%m/%Y à %H:%M")
 
 
+DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+
+
+def long_date(value: date) -> str:
+    """La date en toutes lettres : "dimanche 23 mai 2027"."""
+    day = "1er" if value.day == 1 else str(value.day)
+    return f"{DAYS[value.weekday()]} {day} {MONTHS[value.month - 1]} {value.year}"
+
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # Disponible dans tous les templates (pied de page), sans avoir à le passer à chaque page.
 templates.env.globals["app_env"] = settings.app_env
 templates.env.globals["ai_mode"] = settings.ai_mode
 templates.env.filters["euros"] = euros
 templates.env.filters["local_time"] = local_time
+templates.env.filters["long_date"] = long_date

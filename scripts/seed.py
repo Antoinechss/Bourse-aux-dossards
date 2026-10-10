@@ -23,7 +23,12 @@ def seed(session: Session, organizer_email: str) -> int:
     for item in races:
         # model_validate convertit les dates, écrites en texte dans le JSON.
         race = Race.model_validate(
-            {"name": item["name"], "event_date": item["event_date"], "organizer_email": organizer_email}
+            {
+                "name": item["name"],
+                "event_date": item["event_date"],
+                "distance": item["distance"],
+                "organizer_email": organizer_email,
+            }
         )
         session.add(race)
         session.flush()  # attribue race.id sans encore valider la transaction

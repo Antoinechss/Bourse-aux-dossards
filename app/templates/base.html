@@ -4,28 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Relais{% endblock %}</title>
+  {# Les polices sont dans le projet : rien n'est chargé de l'extérieur. #}
+  <link rel="preload" href="{{ url_for('static', path='fonts/inter-variable.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', path='fonts/archivo-variable.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
   {# Par défaut HTMX n'affiche pas une réponse d'erreur. On l'autorise pour 422 : nos messages de formulaire. #}
   <meta name="htmx-config" content='{"responseHandling": [{"code": "204", "swap": false}, {"code": "[23]..", "swap": true}, {"code": "422", "swap": true}, {"code": "[45]..", "swap": false, "error": true}]}'>
   <script src="{{ url_for('static', path='htmx.min.js') }}" defer></script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
-  <header>
-    <a class="brand" href="/">Relais</a>
-    <nav>
-      <a href="/">Courses</a>
-      <a href="/inbox">Boîte mail de démo</a>
-      <a href="/organizer">Espace organisateur</a>
-    </nav>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="/">Relais <span class="brand__tag">Démo</span></a>
+      <nav class="site-nav" aria-label="Navigation principale">
+        <a href="/">Courses</a>
+        <a href="/organizer">Organisateur</a>
+      </nav>
+    </div>
   </header>
-  {% if ai_mode == "fake" %}
-  <p class="demo-banner">IA simulée : les réponses sont préenregistrées, pour les seuls fichiers d'exemple de seed/.</p>
-  {% endif %}
-  <main>
+  {# Un écran redessiné remplace ce bloc pour poser ses propres bandes ; les autres gardent une colonne simple. #}
+  {% block main %}
+  <main class="container page">
     {% block content %}{% endblock %}
   </main>
-  <footer>
-    <small>Démo — PayPal sandbox, aucun paiement réel. Environnement : {{ app_env }}</small>
+  {% endblock %}
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p>Relais, la bourse aux dossards officielle.</p>
+      <a href="/inbox">Boîte mail de démo</a>
+      <p class="muted">
+        Démo : paiements PayPal en mode sandbox, aucun paiement réel.
+        {% if ai_mode == "fake" %}IA simulée : réponses préenregistrées pour les fichiers d'exemple.{% endif %}
+        Environnement : {{ app_env }}.
+      </p>
+    </div>
   </footer>
 </body>
 </html>

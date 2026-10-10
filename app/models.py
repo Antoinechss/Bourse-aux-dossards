@@ -39,6 +39,7 @@ class Race(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
     event_date: date
+    distance: str = ""  # telle qu'on l'imprime sur le dossard : "10 km", "21,1 km"
     organizer_email: str  # destinataire du Payout de la part organisateur
     # Commission en points de base (500 = 5 %), payée par l'acheteur en plus du prix.
     platform_fee_bps: int = 500

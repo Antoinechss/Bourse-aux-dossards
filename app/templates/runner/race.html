@@ -1,53 +1,114 @@
 {% extends "base.html" %}
+{% from "components/bib.html" import bib %}
 
 {% block title %}{{ race.name }} — Relais{% endblock %}
 
-{% block content %}
-<h1>{{ race.name }}</h1>
-<p>Course du {{ race.event_date.strftime("%d/%m/%Y") }}.</p>
-
-{% if closed %}
-<p class="error">{{ closed }}</p>
-{% else %}
-<h2>Dossards en vente</h2>
+{% block main %}
 {% set total = market.free + market.offered %}
-<p>
-  {% if total == 0 %}
-  Aucun dossard n'est en vente pour l'instant.
-  {% else %}
-  {{ total }} dossard{{ "s" if total > 1 }} en vente{% if market.offered %}, dont {{ market.offered }} déjà
-  proposé{{ "s" if market.offered > 1 }} à un coureur de la liste d'attente{% endif %}.
-  {% endif %}
-  {{ market.waiting }} coureur{{ "s" if market.waiting > 1 }} sur la liste d'attente.
-</p>
-{% if rules %}
-<ul>
-  {% if rules.max_resale_price_cents is not none %}
-  <li>Prix de revente maximum : {{ rules.max_resale_price_cents | euros }} €</li>
-  {% endif %}
-  {% if rules.transfer_deadline %}
-  <li>Transferts possibles jusqu'au {{ rules.transfer_deadline.strftime("%d/%m/%Y") }}</li>
-  {% endif %}
-  {% if rules.required_proofs %}
-  <li>Justificatif demandé à l'acheteur : {{ rules.required_proofs | map("string") | map("replace", "LICENCE_FFA", "licence FFA") | join(" ou ") }}</li>
-  {% endif %}
-</ul>
-{% endif %}
+{% set cap = rules.max_resale_price_cents if rules else none %}
+<main>
+  <section class="band hero">
+    <div class="container hero__grid">
+      <div class="hero__intro">
+        <p class="eyebrow">{{ race.event_date | long_date }}</p>
+        <h1>{% for word in race.name.split(" ") %}<span class="nowrap">{{ word }}</span>{{ " " if not loop.last }}{% endfor %}</h1>
+        {% if closed %}
+        <p class="error">{{ closed }}</p>
+        {% else %}
+        <ul class="figures">
+          {% if race.distance %}
+          <li class="figure"><span class="figure__value">{{ race.distance }}</span><span class="figure__label">distance</span></li>
+          {% endif %}
+          <li class="figure">
+            <span class="figure__value">{{ total }}</span>
+            <span class="figure__label">dossard{{ "s" if total > 1 }} en vente</span>
+          </li>
+          {% if cap is not none %}
+          <li class="figure"><span class="figure__value">{{ cap | euros }} €</span><span class="figure__label">prix maximum</span></li>
+          {% endif %}
+          {% if market.waiting %}
+          <li class="figure">
+            <span class="figure__value">{{ market.waiting }}</span>
+            <span class="figure__label">coureur{{ "s" if market.waiting > 1 }} en attente</span>
+          </li>
+          {% endif %}
+        </ul>
+        {% endif %}
+      </div>
 
-<h2>Rejoindre la liste d'attente</h2>
-<p>
-  Les dossards sont proposés aux coureurs dans l'ordre de leur inscription. Quand vient votre tour,
-  vous avez 48 heures pour payer ; sinon le dossard passe au suivant.
-</p>
-<form hx-post="/runner/races/{{ race.id }}/waitlist" hx-target="#waitlist-result" hx-disabled-elt="find button">
-  <label>Prénom <input name="first_name" autocomplete="given-name" required></label>
-  <label>Nom <input name="last_name" autocomplete="family-name" required></label>
-  <label>Email <input type="email" name="email" autocomplete="email" required></label>
-  <button type="submit">Rejoindre la liste d'attente</button>
-</form>
-<div id="waitlist-result" role="status"></div>
+      {% if not closed %}
+      <div class="hero__bibs">
+        <h2 class="eyebrow">Dossards en vente</h2>
+        {% if bibs %}
+        <ul class="bib-rail">
+          {% for listing, transfer in bibs %}
+          <li class="bib-card">
+            {{ bib(listing.bib_number, race.name, race.distance) }}
+            <p class="bib-card__meta">
+              <span class="bib-card__price">{{ listing.price_cents | euros }} €</span>
+              <span class="bib-card__state">{{ "Disponible" if transfer.state.value == "EN_VENTE" else "Proposé à un coureur" }}</span>
+            </p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="bib-empty">
+          <p>Aucun dossard n'est en vente pour l'instant.</p>
+          <p class="muted">Inscrivez-vous sur la liste d'attente : le prochain dossard remis en vente vous sera proposé.</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
 
-<h2>Vous ne pouvez plus courir ?</h2>
-<p><a href="/runner/races/{{ race.id }}/sell">Mettre mon dossard en vente</a></p>
-{% endif %}
+  {% if not closed %}
+  <section class="container section split">
+    <div class="stack stack--loose">
+      <div class="stack">
+        <h2>Liste d'attente</h2>
+        <p>
+          Les dossards sont proposés dans l'ordre d'inscription. Quand vient votre tour,
+          vous avez 48 heures pour payer ; sinon le dossard passe au suivant.
+        </p>
+      </div>
+      <form hx-post="/runner/races/{{ race.id }}/waitlist" hx-target="#waitlist-result" hx-disabled-elt="find button">
+        <div class="fields fields--pair">
+          <label>Prénom <input name="first_name" autocomplete="given-name" required></label>
+          <label>Nom <input name="last_name" autocomplete="family-name" required></label>
+        </div>
+        <label>Email <input type="email" name="email" autocomplete="email" required></label>
+        <button type="submit">Rejoindre la liste d'attente</button>
+      </form>
+      <div id="waitlist-result" role="status"></div>
+    </div>
+
+    <aside class="stack stack--loose">
+      {% if rules and (cap is not none or rules.transfer_deadline or rules.required_proofs) %}
+      <div class="stack">
+        <h2>Règles de revente</h2>
+        <dl class="specs">
+          {% if cap is not none %}
+          <div><dt>Prix de revente maximum</dt><dd>{{ cap | euros }} €</dd></div>
+          {% endif %}
+          {% if rules.transfer_deadline %}
+          <div><dt>Transferts jusqu'au</dt><dd>{{ rules.transfer_deadline.strftime("%d/%m/%Y") }}</dd></div>
+          {% endif %}
+          {% if rules.required_proofs %}
+          <div>
+            <dt>Justificatif de l'acheteur</dt>
+            <dd>{{ rules.required_proofs | map("string") | map("replace", "LICENCE_FFA", "Licence FFA") | join(" ou ") }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+      {% endif %}
+      <div class="stack">
+        <h2>Vous ne pouvez plus courir ?</h2>
+        <p><a class="button button--secondary" href="/runner/races/{{ race.id }}/sell">Mettre mon dossard en vente</a></p>
+      </div>
+    </aside>
+  </section>
+  {% endif %}
+</main>
 {% endblock %}

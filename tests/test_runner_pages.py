@@ -65,14 +65,30 @@ def set_state(session, transfer, state: TransferState) -> None:
 # --- La course et la liste d'attente ---
 
 
-def test_race_page_shows_what_is_on_sale_and_the_rules(client, race, rules):
+def test_race_page_shows_the_bibs_on_sale_and_the_rules(client, race, rules):
     page = client.get(f"/runner/races/{race.id}").text
     assert "Aucun dossard n'est en vente pour l'instant." in page
-    assert "Prix de revente maximum : 45,00 €" in page
+    assert "<dt>Prix de revente maximum</dt><dd>45,00 €</dd>" in page
 
     client.post(f"/runner/races/{race.id}/listings", data=SELLER)
 
-    assert "1 dossard en vente." in client.get(f"/runner/races/{race.id}").text
+    page = client.get(f"/runner/races/{race.id}").text
+    assert "Aucun dossard n'est en vente" not in page
+    assert '<span class="figure__label">dossard en vente</span>' in page
+    assert '<div class="bib__number">42</div>' in page
+    assert '<span class="bib-card__price">45,00 €</span>' in page
+    assert "Disponible" in page
+
+
+def test_a_bib_on_sale_shows_its_state_but_never_its_seller(client, race, rules):
+    client.post(f"/runner/races/{race.id}/listings", data=SELLER)
+    client.post(f"/runner/races/{race.id}/waitlist", data=BUYER)  # le dossard est proposé à Marie
+
+    page = client.get(f"/runner/races/{race.id}").text
+
+    assert "Proposé à un coureur" in page
+    assert '<div class="bib__name">En vente</div>' in page
+    assert "Dupont" not in page
 
 
 def test_race_page_is_closed_when_the_rules_forbid_resale(client, session, race, rules):

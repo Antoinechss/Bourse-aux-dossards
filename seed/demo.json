@@ -3,6 +3,7 @@
     {
       "name": "Trail des Crêtes de Valombre",
       "event_date": "2027-04-11",
+      "distance": "25 km",
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 9 — Le transfert de dossard est autorisé uniquement via la bourse officielle de l'organisation.",
@@ -29,6 +30,7 @@
     {
       "name": "10 km de Port-Clair",
       "event_date": "2027-05-23",
+      "distance": "10 km",
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 6 — Tout coureur empêché peut céder son dossard à un tiers par l'intermédiaire de l'organisation.",
@@ -55,6 +57,7 @@
     {
       "name": "Semi-marathon de Montbrisac",
       "event_date": "2027-03-14",
+      "distance": "21,1 km",
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 11 — Le changement de titulaire d'un dossard est possible sur demande auprès de l'organisation.",

@@ -1,216 +1,893 @@
-body {
-  font-family: system-ui, sans-serif;
-  max-width: 42rem;
-  margin: 0 auto;
-  padding: 1rem;
-  line-height: 1.5;
-  color: #1a1a1a;
+/* Relais — feuille de style.
+   Principe de mise en page : une bande d'asphalte ouvre l'écran avec le titre et les chiffres ;
+   le reste se lit sur blanc, aligné sur une grille large. L'accent ne sert qu'à l'action principale
+   et aux états réussis. Aucune valeur n'est écrite en dur dans les écrans : tout passe par les jetons. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("fonts/archivo-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
 }
 
-header .brand {
-  font-weight: 700;
-  font-size: 1.25rem;
-  text-decoration: none;
-  color: inherit;
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/inter-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
 }
 
-footer {
-  margin-top: 3rem;
-  color: #666;
+/* ---------- Jetons ---------- */
+
+:root {
+  /* Couleurs : noir, blanc, quatre gris d'asphalte, un accent. */
+  --ink: #0c0c0d;
+  --asphalt-700: #2b2c2f;
+  --asphalt-500: #6b6c71; /* texte secondaire et bord des champs : 5,2:1 sur blanc */
+  --asphalt-200: #dadad7; /* filets */
+  --asphalt-100: #f3f3f1; /* aplats discrets */
+  --paper: #ffffff;
+  --accent: #2340ff; /* « bleu ligne » : la ligne peinte sur l'asphalte des marathons */
+  --accent-strong: #1830d6;
+  --on-accent: #ffffff;
+  --on-ink-muted: rgb(255 255 255 / 0.66);
+  --on-ink-rule: rgb(255 255 255 / 0.2);
+
+  /* Typographie : Archivo pour les titres et les chiffres, Inter pour le texte. */
+  --font-display: "Archivo", "Inter", system-ui, sans-serif;
+  --font-text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-xs: 0.75rem; /* 12 : étiquettes */
+  --text-sm: 0.875rem; /* 14 */
+  --text-md: 1rem; /* 16 : texte courant */
+  --text-lg: 1.25rem; /* 20 */
+  --text-xl: 1.75rem; /* 28 : titres de section */
+  --text-2xl: clamp(2.5rem, 1.55rem + 4.2vw, 4.75rem); /* titre d'écran */
+  --text-figure: clamp(2rem, 1.5rem + 2.2vw, 3.25rem); /* grands chiffres */
+  --leading-display: 0.98;
+  --leading-text: 1.55;
+  --tracking-display: -0.03em;
+  --tracking-label: 0.1em;
+
+  /* Espacements : échelle 4 / 8. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* Formes et filets. */
+  --radius: 4px;
+  --radius-lg: 6px;
+  --rule: 1px solid var(--asphalt-200);
+  --rule-strong: 1px solid var(--ink);
+  --control-height: 3rem; /* 48 px : cible tactile confortable */
+
+  /* Mouvement. */
+  --ease: 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Grille. */
+  --gutter: var(--space-4);
+  --measure: 72rem;
+  --measure-wide: 96rem;
+  --measure-text: 38rem;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+@media (min-width: 48rem) {
+  :root {
+    --gutter: var(--space-8);
+  }
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
+/* ---------- Socle ---------- */
 
-th, td {
-  text-align: left;
-  vertical-align: top;
-  padding: 0.4rem 0.6rem 0.4rem 0;
-  border-bottom: 1px solid #ddd;
-}
-
-fieldset {
-  margin: 0 0 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.25rem;
-}
-
-legend {
-  font-weight: 600;
-}
-
-fieldset label {
-  margin-right: 1rem;
-}
-
-blockquote {
-  margin: 0.5rem 0 0;
-  padding-left: 0.75rem;
-  border-left: 3px solid #bbb;
-  color: #444;
-}
-
-.muted {
-  margin: 0.5rem 0 0;
-  color: #666;
-}
-
-.notice, .error {
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.25rem;
-}
-
-.notice {
-  background: #e8f5e9;
-}
-
-.error {
-  background: #fdecea;
-}
-
-
-nav a {
-  margin-left: 1rem;
-}
-
-form label {
-  display: block;
-  margin-bottom: 0.75rem;
-}
-
-form label input:not([type="checkbox"]) {
-  display: block;
-  margin-top: 0.2rem;
-  padding: 0.35rem;
-  width: 100%;
-  max-width: 22rem;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-button, a.button {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border: 0;
-  border-radius: 0.25rem;
-  background: #1a1a1a;
-  color: white;
-  font: inherit;
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--text-md) / var(--leading-text) var(--font-text);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+}
+
+h2 {
+  font-size: var(--text-xl);
+}
+
+h3 {
+  font-size: var(--text-lg);
+}
+
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color var(--ease), color var(--ease);
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sur l'asphalte, l'anneau de focus est blanc : le bleu n'y serait pas assez visible. */
+.band :focus-visible,
+.site-header :focus-visible {
+  outline-color: var(--paper);
+}
+
+.container {
+  width: min(100% - 2 * var(--gutter), var(--measure));
+  margin-inline: auto;
+}
+
+.eyebrow {
+  font: 600 var(--text-xs) / 1.4 var(--font-text);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--asphalt-500);
+}
+
+.muted {
+  color: var(--asphalt-500);
+  font-size: var(--text-sm);
+}
+
+/* ---------- En-tête et pied de page ---------- */
+
+.site-header {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 3.5rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 800 var(--text-lg) / 1 var(--font-display);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brand__tag {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--on-ink-rule);
+  border-radius: var(--radius);
+  font: 600 0.6875rem / 1 var(--font-text);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--on-ink-muted);
+}
+
+.site-nav {
+  display: flex;
+  gap: var(--space-6);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.site-nav a {
+  padding-block: var(--space-3);
+  text-decoration: none;
+}
+
+.site-nav a:hover {
+  text-decoration: underline;
+}
+
+.site-footer {
+  margin-top: auto;
+  border-top: var(--rule);
+  font-size: var(--text-sm);
+}
+
+.site-footer__inner {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-8);
+}
+
+@media (min-width: 48rem) {
+  .site-footer__inner {
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    column-gap: var(--space-8);
+  }
+
+  .site-footer__inner .muted {
+    grid-column: 1;
+  }
+
+  .site-footer__inner a {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+
+/* ---------- Bande d'asphalte et sections ---------- */
+
+.band {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.band .eyebrow {
+  color: var(--on-ink-muted);
+}
+
+.section {
+  padding-block: var(--space-12);
+}
+
+@media (min-width: 48rem) {
+  .section {
+    padding-block: var(--space-16);
+  }
+}
+
+/* Deux colonnes sur grand écran : l'action à gauche, le contexte à droite. */
+.split {
+  display: grid;
+  gap: var(--space-12);
+}
+
+@media (min-width: 60rem) {
+  .split {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--space-16);
+  }
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.stack--loose {
+  gap: var(--space-8);
+}
+
+/* ---------- Grands chiffres ---------- */
+
+/* Sur téléphone, deux colonnes alignées ; sur grand écran, une seule rangée. */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: var(--space-6) var(--space-12);
+  padding: var(--space-6) 0 0;
+  border-top: 1px solid var(--asphalt-200);
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6) var(--space-16);
+  }
+}
+
+.band .figures {
+  border-top-color: var(--on-ink-rule);
+}
+
+.figure {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.figure__value {
+  font: 750 var(--text-figure) / 1 var(--font-display);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.figure__label {
+  font-size: var(--text-sm);
+  color: var(--asphalt-500);
+}
+
+.band .figure__label {
+  color: var(--on-ink-muted);
+}
+
+/* ---------- Le dossard ----------
+   L'objet que l'on achète : un rectangle blanc, un grand numéro, la course, la distance,
+   quatre trous d'épingle. Toutes ses mesures suivent sa largeur (unités cqi). */
+
+.bib {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 7 / 5;
+  max-width: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--rule);
+  border-radius: var(--radius);
+}
+
+.bib__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4cqi;
+  padding: 6cqi 11cqi 0;
+  font: 650 3.5cqi / 1.2 var(--font-display);
+  font-stretch: 90%;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bib__race {
+  min-width: 0;
+  text-wrap: balance;
+}
+
+.bib__distance {
+  flex: none;
+  white-space: nowrap;
+}
+
+.bib__number {
+  align-self: center;
+  padding-inline: 6cqi;
+  /* Le numéro occupe la largeur quel que soit son nombre de chiffres. */
+  font: 900 min(46cqi, calc(150cqi / var(--digits, 4))) / 0.8 var(--font-display);
+  font-stretch: 75%;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.bib__name {
+  padding: 3.4cqi 11cqi;
+  border-top: var(--rule-strong);
+  font: 700 4.1cqi / 1.2 var(--font-display);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background-color var(--ease), color var(--ease);
+}
+
+/* Dossard vérifié ou transféré : le bandeau du nom passe à l'accent. */
+.bib--done .bib__name {
+  background: var(--accent);
+  border-top-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.bib__pin {
+  position: absolute;
+  width: 3.2cqi;
+  aspect-ratio: 1;
+  border: 1px solid var(--asphalt-500);
+  border-radius: 50%;
+  /* Le trou laisse voir ce sur quoi le dossard est posé. */
+  background: var(--bib-ground, var(--paper));
+}
+
+.bib__pin:nth-of-type(1) {
+  top: 4cqi;
+  left: 4cqi;
+}
+
+.bib__pin:nth-of-type(2) {
+  top: 4cqi;
+  right: 4cqi;
+}
+
+.bib__pin:nth-of-type(3) {
+  bottom: 4cqi;
+  left: 4cqi;
+}
+
+.bib__pin:nth-of-type(4) {
+  bottom: 4cqi;
+  right: 4cqi;
+}
+
+.band .bib {
+  --bib-ground: var(--ink);
+  border-color: var(--paper);
+}
+
+/* Une rangée de dossards : défilement horizontal au pouce sur téléphone, grille sur grand écran. */
+.bib-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(78%, 17rem);
+  gap: var(--space-4);
+  margin-inline: calc(-1 * var(--gutter));
+  padding: 0 var(--gutter) var(--space-2);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+  list-style: none;
+}
+
+.bib-rail::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .bib-rail {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: var(--space-8) var(--space-6);
+    margin-inline: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+.bib-card {
+  display: grid;
+  gap: var(--space-3);
+  scroll-snap-align: start;
+}
+
+.bib-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.bib-card__price {
+  font: 700 var(--text-lg) / 1.1 var(--font-display);
+  white-space: nowrap;
+}
+
+.bib-card__state {
+  font-size: var(--text-sm);
+  color: var(--asphalt-500);
+  text-align: right;
+}
+
+.band .bib-card__state {
+  color: var(--on-ink-muted);
+}
+
+/* Aucun dossard : l'emplacement reste dessiné, en pointillés. */
+.bib-empty {
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+  max-width: 22rem;
+  aspect-ratio: 7 / 5;
+  padding: var(--space-6);
+  border: 1px dashed var(--asphalt-500);
+  border-radius: var(--radius);
+}
+
+.band .bib-empty {
+  border-color: var(--on-ink-rule);
+}
+
+.band .bib-empty .muted {
+  color: var(--on-ink-muted);
+}
+
+/* ---------- Page course ---------- */
+
+.hero {
+  padding-block: var(--space-8) var(--space-12);
+}
+
+.hero__grid {
+  display: grid;
+  gap: var(--space-12);
+}
+
+/* Un mot du titre ne se coupe jamais, même à son trait d'union : « Semi-marathon » reste entier. */
+.nowrap {
+  white-space: nowrap;
+}
+
+.hero__intro {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.hero__bibs {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+}
+
+@media (min-width: 60rem) {
+  .hero {
+    padding-block: var(--space-16);
+  }
+
+  .hero__grid {
+    gap: var(--space-16);
+  }
+}
+
+/* Une liste de faits : le libellé à gauche, la valeur à droite, un filet entre chaque ligne. */
+.specs {
+  border-top: var(--rule-strong);
+}
+
+.specs > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding-block: var(--space-3);
+  border-bottom: var(--rule);
+}
+
+.specs dt {
+  color: var(--asphalt-500);
+  font-size: var(--text-sm);
+}
+
+.specs dd {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---------- Formulaires et boutons ---------- */
+
+form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--measure-text);
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 30rem) {
+  .fields--pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+form label {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+form input:not([type="checkbox"], [type="file"], [type="hidden"]),
+form select {
+  width: 100%;
+  height: var(--control-height);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--asphalt-500);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--text-md) / 1.2 var(--font-text);
+  transition: border-color var(--ease);
+}
+
+form input:not([type="checkbox"], [type="file"], [type="hidden"]):hover,
+form select:hover,
+form input:not([type="checkbox"], [type="file"], [type="hidden"]):focus,
+form select:focus {
+  border-color: var(--ink);
+}
+
+form label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-4);
+}
+
+.button,
+form button,
+.decision button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 var(--text-md) / 1 var(--font-text);
   text-decoration: none;
   cursor: pointer;
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease);
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: wait;
+.button:hover,
+form button:hover,
+.decision button:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
-/* Les étapes de la page de suivi : faites, en cours, à venir. */
+form button:disabled,
+.decision button:disabled {
+  opacity: 0.45;
+  cursor: progress;
+}
+
+form button {
+  justify-self: start;
+}
+
+/* Sur téléphone, l'action principale prend toute la largeur : une cible facile au pouce. */
+@media (max-width: 29.99rem) {
+  form button,
+  .button {
+    width: 100%;
+  }
+}
+
+/* Action secondaire : un filet, pas d'aplat. */
+.button--secondary,
+.decision button.secondary,
+form button.secondary {
+  background: transparent;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.button--secondary:hover,
+.decision button.secondary:hover,
+form button.secondary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- Messages ---------- */
+
+.notice,
+.error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+}
+
+.notice {
+  background: var(--asphalt-100);
+}
+
+.error {
+  border: var(--rule-strong);
+  font-weight: 500;
+}
+
+.band .error {
+  border-color: var(--paper);
+}
+
+/* ---------- Écrans pas encore redessinés : un rythme et des éléments par défaut ---------- */
+
+.page {
+  padding-block: var(--space-12) var(--space-16);
+}
+
+.page > * + * {
+  margin-top: var(--space-4);
+}
+
+.page > h2 {
+  margin-top: var(--space-12);
+}
+
+.page > h1 + * {
+  margin-top: var(--space-6);
+}
+
+body.wide .page {
+  width: min(100% - 2 * var(--gutter), var(--measure-wide));
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+  border-bottom: var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--asphalt-500);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+fieldset {
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--rule);
+  border-radius: var(--radius);
+}
+
+legend {
+  padding-inline: var(--space-2);
+  font-weight: 600;
+}
+
+blockquote {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--asphalt-200);
+  color: var(--asphalt-700);
+}
+
+details {
+  padding-block: var(--space-2);
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+details > * + * {
+  margin-top: var(--space-3);
+}
+
 .steps {
-  padding-left: 1.5rem;
-  color: #999;
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-6);
+  color: var(--asphalt-500);
 }
 
 .steps .done {
-  color: #2e7d32;
+  color: var(--ink);
 }
 
 .steps .current {
-  color: #1a1a1a;
+  color: var(--ink);
   font-weight: 600;
 }
 
 .message {
-  padding: 0.5rem 0 1rem;
-  border-bottom: 1px solid #ddd;
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  border-bottom: var(--rule);
 }
 
 .message h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-/* Le tableau de bord a besoin de largeur pour sa table. */
-body.wide {
-  max-width: 96rem;
+  font-size: var(--text-md);
+  letter-spacing: 0;
 }
 
 .indicators {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .indicator {
   flex: 1 1 14rem;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.25rem;
+  padding: var(--space-4);
+  border: var(--rule);
+  border-radius: var(--radius);
 }
 
 .indicator strong {
   display: block;
-  font-size: 2rem;
-  line-height: 1.2;
+  font: 750 var(--text-figure) / 1.1 var(--font-display);
 }
 
 .badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 1rem;
-  background: #eee;
+  padding: 0.1rem var(--space-2);
+  border: var(--rule);
+  border-radius: var(--radius);
   white-space: nowrap;
 }
 
-.badge.verdict-VERT, .badge.state-VERSE, .badge.state-ENCAISSE, .badge.state-NOM_CHANGE, .badge.state-VERIFIE {
-  background: #e8f5e9;
+.badge.verdict-ROUGE,
+.badge.state-REFUSE {
+  border-color: var(--ink);
 }
 
-.badge.verdict-ORANGE, .badge.state-AUTORISE, .badge.state-RESERVE {
-  background: #fff3e0;
+.badge.verdict-VERT,
+.badge.state-VERSE {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
-.badge.verdict-ROUGE, .badge.state-REFUSE {
-  background: #fdecea;
+.decision {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 .decision button {
-  margin-right: 0.4rem;
-  padding: 0.15rem 0.6rem;
-  line-height: 1.4;
-}
-
-button.secondary {
-  background: white;
-  color: #1a1a1a;
-  border: 1px solid #1a1a1a;
+  min-height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
 }
 
 /* Texte sur plusieurs lignes : AG Grid donne sinon à chaque ligne la hauteur d'une rangée entière. */
 .ag-cell.explanation {
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
+  padding-block: var(--space-3);
   line-height: 1.4;
 }
 
-.demo-banner {
-  margin: 0.75rem 0 0;
-  padding: 0.4rem 0.75rem;
-  border-radius: 0.25rem;
-  background: #fff3e0;
-  font-size: 0.9rem;
-}
-
-details {
-  margin-bottom: 1rem;
-}
-
-summary {
-  cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

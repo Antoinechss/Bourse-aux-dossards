@@ -72,6 +72,17 @@ def _waiting(session: Session, race_id: int) -> list[WaitlistEntry]:
     return [entry for entry in entries if entry.id not in busy]
 
 
+def bibs_on_sale(session: Session, race_id: int) -> list[tuple[Listing, Transfer]]:
+    """Les dossards en vente de cette course, avec leur tentative en cours : les libres d'abord."""
+    statement = (
+        select(Listing, Transfer)
+        .join(Transfer, Transfer.listing_id == Listing.id)
+        .where(Listing.race_id == race_id, col(Transfer.state).in_((TransferState.EN_VENTE, TransferState.RESERVE)))
+    )
+    free_first = {TransferState.EN_VENTE: 0, TransferState.RESERVE: 1}
+    return sorted(session.exec(statement).all(), key=lambda pair: (free_first[pair[1].state], pair[0].bib_number))
+
+
 def race_market(session: Session, race_id: int) -> RaceMarket:
     return RaceMarket(
         free=len(_race_transfers(session, race_id, TransferState.EN_VENTE)),

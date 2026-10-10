@@ -147,7 +147,13 @@ def race_context(session: Session, race: Race) -> dict:
         closed = None
     except MarketError as error:
         closed = str(error)
-    return {"race": race, "rules": rules, "market": market.race_market(session, race.id), "closed": closed}
+    return {
+        "race": race,
+        "rules": rules,
+        "market": market.race_market(session, race.id),
+        "bibs": market.bibs_on_sale(session, race.id),
+        "closed": closed,
+    }
 
 
 def message(request: Request, text: str, *, error: bool = False) -> HTMLResponse:
