@@ -25,5 +25,6 @@ def local_time(value: datetime) -> str:
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # Disponible dans tous les templates (pied de page), sans avoir à le passer à chaque page.
 templates.env.globals["app_env"] = settings.app_env
+templates.env.globals["ai_mode"] = settings.ai_mode
 templates.env.filters["euros"] = euros
 templates.env.filters["local_time"] = local_time

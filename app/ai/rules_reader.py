@@ -2,7 +2,9 @@
 
 import anthropic
 
+from app.ai import fake
 from app.ai.client import PDF, AIError, detect_media_type, extract
+from app.config import settings
 from app.models import RaceRules
 
 # Chaque règle et le champ qui porte sa citation.
@@ -51,5 +53,7 @@ def read_rules(pdf: bytes, client: anthropic.Anthropic | None = None) -> RaceRul
     """Envoie le règlement à Claude et renvoie les règles qu'il y a trouvées, chacune avec sa citation."""
     if detect_media_type(pdf) != PDF:
         raise AIError("Le règlement doit être un fichier PDF.")
+    if settings.ai_mode == "fake" and client is None:
+        return clean(RaceRules.model_validate(fake.answer_for("reglements", pdf)), require_quote=True)
     rules = extract(data=pdf, system=SYSTEM, instruction=INSTRUCTION, output_format=RaceRules, client=client)
     return clean(rules, require_quote=True)

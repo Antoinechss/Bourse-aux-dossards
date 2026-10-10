@@ -14,7 +14,9 @@ import anthropic
 from pydantic import BaseModel, Field
 from sqlmodel import Session, func, select
 
+from app.ai import fake
 from app.ai.client import extract
+from app.config import settings
 from app.models import Listing, ProofType, RaceRulesRow, Verdict, WaitlistEntry, utcnow
 
 # Seuils des signaux anti-revendeur.
@@ -71,6 +73,8 @@ INSTRUCTION = "Voici le justificatif déposé par le coureur. Relève son type, 
 
 def read_proof(data: bytes, client: anthropic.Anthropic | None = None) -> ProofReading:
     """Envoie le justificatif (image ou PDF) à Claude et renvoie ce qu'il y a lu."""
+    if settings.ai_mode == "fake" and client is None:
+        return ProofReading.model_validate(fake.answer_for("justificatifs", data))
     return extract(
         data=data, system=f"{SYSTEM}\n\n{DEMO_NOTE}", instruction=INSTRUCTION, output_format=ProofReading, client=client
     )

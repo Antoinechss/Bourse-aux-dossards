@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord — Relais{% endblock %}
+{% block body_class %}wide{% endblock %}
+
+{% block content %}
+<h1>Tableau de bord de l'organisateur</h1>
+
+<section class="indicators" aria-label="Indicateurs">
+  <div class="indicator">
+    <strong id="indicator-reassigned">–</strong>
+    <span id="indicator-reassigned-label">dossards réattribués</span>
+  </div>
+  <div class="indicator">
+    <strong id="indicator-saved">–</strong>
+    <span id="indicator-saved-label">places sauvées</span>
+  </div>
+  <div class="indicator">
+    <strong id="indicator-commission">–</strong>
+    <span>de commission reversée</span>
+  </div>
+</section>
+
+<h2>Transferts</h2>
+<p>
+  Un transfert est validé tout seul quand l'IA est au vert. Sinon il attend votre décision :
+  l'explication de l'IA est dans la table.
+</p>
+<p><label><input type="checkbox" id="only-pending"> Seulement les transferts à décider</label></p>
+<p id="dashboard-message" role="status"></p>
+<div id="transfers-grid"></div>
+
+<h2>Règlements des courses</h2>
+<p>Déposez le règlement de chaque course : Relais y lit les règles de revente des dossards, et vous les confirmez.</p>
+{% if races %}
+<table>
+  <tr><th>Course</th><th>Date</th><th>Règles de revente</th><th></th></tr>
+  {% for race in races %}
+  <tr>
+    <td>{{ race.name }}</td>
+    <td>{{ race.event_date.strftime("%d/%m/%Y") }}</td>
+    <td>{{ "Confirmées" if race.id in with_rules else "À renseigner" }}</td>
+    <td><a href="/organizer/races/{{ race.id }}/rules">Règlement</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Aucune course pour l'instant.</p>
+{% endif %}
+
+{# AG Grid Community, chargé en script depuis le CDN, version épinglée. #}
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@35.3.1/dist/ag-grid-community.min.js"></script>
+<script src="{{ url_for('static', path='dashboard.js') }}"></script>
+{% endblock %}

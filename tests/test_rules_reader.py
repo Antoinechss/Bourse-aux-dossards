@@ -19,9 +19,9 @@ def rules(**values) -> RaceRules:
     return RaceRules(**{**empty, **values})
 
 
-def api_error(error_class, status: int):
+def api_error(error_class, status: int, message: str = "erreur simulée"):
     response = httpx2.Response(status, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
-    return error_class("erreur simulée", response=response, body=None)
+    return error_class(message, response=response, body=None)
 
 
 def test_read_rules_sends_the_pdf_and_returns_the_rules():
@@ -102,6 +102,8 @@ def test_an_unfinished_answer_is_an_error(stop_reason):
     [
         (api_error(anthropic.AuthenticationError, 401), "Clé API"),
         (api_error(anthropic.BadRequestError, 400), "illisible"),
+        # Le texte exact renvoyé par l'API quand le compte n'a pas de crédit.
+        (api_error(anthropic.BadRequestError, 400, "Your credit balance is too low to access the Anthropic API."), "plus de crédit"),
         (api_error(anthropic.RateLimitError, 429), "Trop de demandes"),
         (api_error(anthropic.InternalServerError, 500), "erreur"),
         (anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com")), "injoignable"),

@@ -77,6 +77,9 @@ def extract(
         raise AIError("Clé API Anthropic refusée : vérifie ANTHROPIC_API_KEY dans .env.") from error
     except anthropic.BadRequestError as error:
         logger.warning("Requête refusée par l'API Anthropic : %s", error)
+        # L'API signale un compte sans crédit par la même erreur 400 qu'un fichier illisible : seul le texte les distingue.
+        if "credit balance" in str(error):
+            raise AIError("Le compte Anthropic n'a plus de crédit : l'analyse est impossible pour l'instant.") from error
         raise AIError("Le fichier n'a pas pu être lu : il est illisible, protégé ou trop volumineux.") from error
     except anthropic.RateLimitError as error:
         raise AIError("Trop de demandes en cours : réessaie dans une minute.") from error

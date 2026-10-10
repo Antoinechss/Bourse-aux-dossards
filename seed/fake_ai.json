@@ -1,0 +1,90 @@
+{
+  "reglements": {
+    "trail-cretes-valombre.pdf": {
+      "transfer_allowed": true,
+      "transfer_allowed_quote": "Article 9 — Le transfert de dossard est autorisé uniquement via la bourse officielle de l'organisation.",
+      "transfer_deadline": "2027-03-28",
+      "transfer_deadline_quote": "Article 9 — Aucun transfert n'est accepté après le 28 mars 2027.",
+      "max_resale_price_cents": 4500,
+      "max_resale_price_quote": "Article 9 — Le prix de revente ne peut excéder le tarif d'inscription, soit 45 €.",
+      "transfer_fee_cents": 500,
+      "transfer_fee_quote": "Article 9 — Des frais de dossier de 5 € sont perçus par l'organisation pour chaque transfert.",
+      "required_proofs": ["LICENCE_FFA", "PPS"],
+      "required_proofs_quote": "Article 5 — Chaque participant doit fournir une licence FFA en cours de validité ou un Parcours de Prévention Santé (PPS) valide à la date de l'épreuve."
+    },
+    "10-km-port-clair.pdf": {
+      "transfer_allowed": true,
+      "transfer_allowed_quote": "Article 6 — Tout coureur empêché peut céder son dossard à un tiers par l'intermédiaire de l'organisation.",
+      "transfer_deadline": null,
+      "transfer_deadline_quote": null,
+      "max_resale_price_cents": 2200,
+      "max_resale_price_quote": "Article 6 — Le dossard ne peut être cédé à un prix supérieur à 22 €.",
+      "transfer_fee_cents": null,
+      "transfer_fee_quote": null,
+      "required_proofs": ["LICENCE_FFA", "PPS"],
+      "required_proofs_quote": "Article 4 — La participation est subordonnée à la présentation d'une licence FFA ou d'un PPS en cours de validité le jour de la course."
+    },
+    "semi-marathon-montbrisac.pdf": {
+      "transfer_allowed": true,
+      "transfer_allowed_quote": "Article 11 — Le changement de titulaire d'un dossard est possible sur demande auprès de l'organisation.",
+      "transfer_deadline": "2027-03-07",
+      "transfer_deadline_quote": "Article 11 — Les changements de titulaire sont clos sept jours avant l'épreuve, soit le 7 mars 2027.",
+      "max_resale_price_cents": null,
+      "max_resale_price_quote": null,
+      "transfer_fee_cents": 0,
+      "transfer_fee_quote": "Article 11 — Cette opération est gratuite.",
+      "required_proofs": ["LICENCE_FFA", "PPS"],
+      "required_proofs_quote": "Article 5 — Les coureurs doivent être titulaires d'une licence FFA ou d'un Parcours de Prévention Santé (PPS) valide."
+    },
+    "marathon-deux-rives.pdf": {
+      "transfer_allowed": false,
+      "transfer_allowed_quote": "Article 8 — Tout transfert, revente ou cession de dossard à un tiers est interdit, quel qu'en soit le motif.",
+      "transfer_deadline": null,
+      "transfer_deadline_quote": null,
+      "max_resale_price_cents": null,
+      "max_resale_price_quote": null,
+      "transfer_fee_cents": null,
+      "transfer_fee_quote": null,
+      "required_proofs": ["LICENCE_FFA", "PPS"],
+      "required_proofs_quote": "Article 4 — Tout participant doit présenter une licence FFA ou un Parcours de Prévention Santé (PPS) en cours de validité à la date de la course."
+    },
+    "nocturne-pierrelune.pdf": {
+      "transfer_allowed": null,
+      "transfer_allowed_quote": null,
+      "transfer_deadline": null,
+      "transfer_deadline_quote": null,
+      "max_resale_price_cents": null,
+      "max_resale_price_quote": null,
+      "transfer_fee_cents": null,
+      "transfer_fee_quote": null,
+      "required_proofs": null,
+      "required_proofs_quote": null
+    }
+  },
+  "justificatifs": {
+    "licence-ffa-lea-moreau.png": {
+      "document_type": "LICENCE_FFA",
+      "holder_name": "MOREAU Léa",
+      "valid_until": "2027-08-31",
+      "concern": null
+    },
+    "pps-karim-benali.pdf": {
+      "document_type": "PPS",
+      "holder_name": "BENALI Karim",
+      "valid_until": "2027-05-12",
+      "concern": null
+    },
+    "pps-expire-hugo-lemaire.jpg": {
+      "document_type": "PPS",
+      "holder_name": "LEMAIRE Hugo",
+      "valid_until": "2027-01-05",
+      "concern": null
+    },
+    "carte-salle-de-sport.png": {
+      "document_type": "AUTRE",
+      "holder_name": "MOREAU Léa",
+      "valid_until": "2027-12-31",
+      "concern": null
+    }
+  }
+}

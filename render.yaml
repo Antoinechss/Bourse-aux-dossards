@@ -1,0 +1,43 @@
+# Déploiement sur Render (Blueprint). La base Postgres est chez Neon : seule son URL est donnée ici.
+# Les valeurs marquées « sync: false » sont demandées par Render à la création du service ; elles ne sont pas dans le dépôt.
+
+services:
+  - type: web
+    name: relais
+    runtime: python
+    plan: free
+    region: frankfurt
+    # Render installe uv de lui-même parce que le dépôt contient un uv.lock. La version de Python vient de .python-version.
+    buildCommand: uv sync --frozen --no-dev
+    # 1. Le seed crée les tables puis les courses de démo ; relancé, il ne fait rien si elles existent déjà.
+    # 2. Le serveur. Render termine le HTTPS devant l'application : --forwarded-allow-ips fait confiance à son
+    #    en-tête X-Forwarded-Proto, sans quoi les liens vers /static partiraient en http et seraient bloqués.
+    startCommand: uv run --frozen --no-dev python -m scripts.seed && uv run --frozen --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT --forwarded-allow-ips '*'
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: UV_VERSION
+        value: 0.12.24
+      - key: APP_ENV
+        value: prod
+      # URL de connexion donnée par Neon : postgresql://utilisateur:motdepasse@hôte/base?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # PayPal : sandbox uniquement. L'application refuse de démarrer un paiement sur une autre adresse.
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      # À renseigner après le premier déploiement, une fois le webhook déclaré chez PayPal (voir le README).
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # « fake » remplace Claude par des réponses préenregistrées pour les fichiers de seed/ (secours sans crédit API).
+      - key: AI_MODE
+        value: real
+      # Compte sandbox qui reçoit la part organisateur des courses de démo.
+      - key: DEMO_ORGANIZER_EMAIL
+        sync: false

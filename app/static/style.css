@@ -136,3 +136,73 @@ button:disabled {
   margin: 0;
   font-size: 1.05rem;
 }
+
+/* Le tableau de bord a besoin de largeur pour sa table. */
+body.wide {
+  max-width: 96rem;
+}
+
+.indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.indicator {
+  flex: 1 1 14rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+}
+
+.indicator strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  background: #eee;
+  white-space: nowrap;
+}
+
+.badge.verdict-VERT, .badge.state-VERSE, .badge.state-ENCAISSE, .badge.state-NOM_CHANGE, .badge.state-VERIFIE {
+  background: #e8f5e9;
+}
+
+.badge.verdict-ORANGE, .badge.state-AUTORISE, .badge.state-RESERVE {
+  background: #fff3e0;
+}
+
+.badge.verdict-ROUGE, .badge.state-REFUSE {
+  background: #fdecea;
+}
+
+.decision button {
+  margin-right: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  line-height: 1.4;
+}
+
+button.secondary {
+  background: white;
+  color: #1a1a1a;
+  border: 1px solid #1a1a1a;
+}
+
+/* Texte sur plusieurs lignes : AG Grid donne sinon à chaque ligne la hauteur d'une rangée entière. */
+.ag-cell.explanation {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  line-height: 1.4;
+}
+
+.demo-banner {
+  margin: 0.75rem 0 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.25rem;
+  background: #fff3e0;
+  font-size: 0.9rem;
+}

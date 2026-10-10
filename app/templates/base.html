@@ -9,7 +9,7 @@
   <meta name="htmx-config" content='{"responseHandling": [{"code": "204", "swap": false}, {"code": "[23]..", "swap": true}, {"code": "422", "swap": true}, {"code": "[45]..", "swap": false, "error": true}]}'>
   <script src="{{ url_for('static', path='htmx.min.js') }}" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <header>
     <a class="brand" href="/">Relais</a>
     <nav>
@@ -18,6 +18,9 @@
       <a href="/organizer">Espace organisateur</a>
     </nav>
   </header>
+  {% if ai_mode == "fake" %}
+  <p class="demo-banner">IA simulée : les réponses sont préenregistrées, pour les seuls fichiers d'exemple de seed/.</p>
+  {% endif %}
   <main>
     {% block content %}{% endblock %}
   </main>

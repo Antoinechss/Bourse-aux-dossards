@@ -71,10 +71,8 @@ EXPECTED_PROOFS = {
 }
 
 
-@pytest.mark.parametrize("name", EXPECTED_RULES)
-def test_rules_reader_on_a_seed_reglement(name):
-    rules = read_rules((SEED / "reglements" / f"{name}.pdf").read_bytes())
-
+def check_rules(name: str, rules) -> None:
+    """Vérifie les règles lues dans un règlement de seed/. Sert aussi à l'IA simulée (test_ai_fake.py)."""
     for rule, expected in EXPECTED_RULES[name].items():
         value, quote = getattr(rules, rule), getattr(rules, RULE_QUOTES[rule])
         if expected is None:
@@ -86,15 +84,22 @@ def test_rules_reader_on_a_seed_reglement(name):
         assert passage in quote, f"{rule} : citation inattendue (« {quote} »)"
 
 
-@pytest.mark.parametrize("name", EXPECTED_PROOFS)
-def test_verifier_on_a_seed_proof(name):
+def check_proof(name: str, reading) -> None:
+    """Vérifie la lecture d'un justificatif de seed/, puis le verdict qui en découle."""
     document_type, holder, valid_until, verdict = EXPECTED_PROOFS[name]
-
-    reading = read_proof((SEED / "justificatifs" / name).read_bytes())
-
     assert reading.document_type is document_type
     if document_type is not DocumentType.AUTRE:
         assert compare_names(reading.holder_name, holder) is NameMatch.EXACT
         assert reading.valid_until == valid_until
         assert reading.concern is None
     assert assess(reading, buyer_name=holder, race_date=date(2027, 4, 11)).verdict is verdict
+
+
+@pytest.mark.parametrize("name", EXPECTED_RULES)
+def test_rules_reader_on_a_seed_reglement(name):
+    check_rules(name, read_rules((SEED / "reglements" / f"{name}.pdf").read_bytes()))
+
+
+@pytest.mark.parametrize("name", EXPECTED_PROOFS)
+def test_verifier_on_a_seed_proof(name):
+    check_proof(name, read_proof((SEED / "justificatifs" / name).read_bytes()))

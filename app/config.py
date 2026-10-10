@@ -17,6 +17,7 @@ class Settings:
     paypal_client_secret: str
     paypal_webhook_id: str
     anthropic_api_key: str
+    ai_mode: str
     demo_organizer_email: str
 
 
@@ -29,6 +30,8 @@ def load_settings() -> Settings:
         paypal_client_secret=os.getenv("PAYPAL_CLIENT_SECRET", ""),
         paypal_webhook_id=os.getenv("PAYPAL_WEBHOOK_ID", ""),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
+        # "real" appelle Claude ; "fake" renvoie des réponses préenregistrées pour les fichiers de seed/.
+        ai_mode=os.getenv("AI_MODE", "real"),
         demo_organizer_email=os.getenv("DEMO_ORGANIZER_EMAIL", ""),
     )
 

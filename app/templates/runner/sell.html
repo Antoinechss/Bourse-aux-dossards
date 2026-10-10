@@ -14,7 +14,9 @@
   une fois l'acheteur vérifié et le dossard mis à son nom par l'organisateur.
 </p>
 {% set cap = rules.max_resale_price_cents if rules else none %}
-<form hx-post="/runner/races/{{ race.id }}/listings" hx-target="#sell-result" hx-disabled-elt="find button">
+{# hx-disinherit : le champ du prix fait ses propres requêtes et ne doit pas hériter du blocage du bouton. #}
+<form hx-post="/runner/races/{{ race.id }}/listings" hx-target="#sell-result" hx-disabled-elt="find button"
+      hx-disinherit="hx-disabled-elt">
   <label>Numéro de dossard <input name="bib_number" inputmode="numeric" required></label>
   <label>Prénom, tel qu'à l'inscription <input name="first_name" autocomplete="given-name" required></label>
   <label>Nom, tel qu'à l'inscription <input name="last_name" autocomplete="family-name" required></label>

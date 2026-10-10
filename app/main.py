@@ -59,6 +59,12 @@ app.include_router(inbox_router)
 app.include_router(webhooks_router)
 
 
+@app.get("/healthz")
+def health() -> dict:
+    """Pour l'hébergeur : dit seulement que le serveur répond, sans toucher à la base."""
+    return {"status": "ok"}
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, session: SessionDep):
     races = session.exec(select(Race).order_by(Race.event_date)).all()
