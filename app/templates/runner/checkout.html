@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Dossard n°{{ listing.bib_number }} — {{ race.name }}{% endblock %}
+
+{% block content %}
+<h1>Dossard n°{{ listing.bib_number }} — {{ race.name }}</h1>
+<p>Bonjour {{ buyer.first_name }}, un dossard s'est libéré pour la course du {{ race.event_date.strftime("%d/%m/%Y") }}.</p>
+
+<table>
+  <tr><th scope="row">Prix du dossard</th><td>{{ amounts.price_cents | euros }} €</td></tr>
+  <tr><th scope="row">Frais de service</th><td>{{ amounts.service_fee_cents | euros }} €</td></tr>
+  <tr><th scope="row">Total à payer</th><td><strong>{{ amounts.total_cents | euros }} €</strong></td></tr>
+</table>
+
+{% if status == "payable" %}
+<p>
+  Votre paiement est d'abord <strong>autorisé</strong> : la somme est bloquée, mais vous n'êtes débité
+  qu'une fois le dossard mis à votre nom par l'organisateur. Si le transfert est refusé,
+  l'autorisation est annulée et vous ne payez rien.
+</p>
+<div id="checkout" data-transfer-id="{{ transfer.id }}" data-client-id="{{ paypal_client_id }}">
+  <paypal-button id="paypal-button" type="pay" hidden></paypal-button>
+  <p id="checkout-message" class="muted" role="status">Chargement du bouton PayPal…</p>
+</div>
+<script src="{{ url_for('static', path='checkout.js') }}"></script>
+{# Adresse du SDK de test : Relais ne fonctionne qu'en sandbox. #}
+<script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" onload="onPayPalWebSdkLoaded()"></script>
+{% elif status == "authorized" %}
+<p class="notice">
+  Paiement autorisé : la somme est bloquée, vous n'êtes pas encore débité. Vous le serez quand
+  l'organisateur aura mis le dossard à votre nom.
+</p>
+{% elif status == "paid" %}
+<p class="notice">Paiement encaissé : le dossard est à votre nom. Bonne course !</p>
+{% elif status == "refused" %}
+<p class="error">Le transfert a été refusé. L'autorisation de paiement est annulée : vous n'avez pas été débité.</p>
+{% else %}
+<p class="error">Cette offre a expiré : le dossard a été proposé à la personne suivante sur la liste d'attente.</p>
+{% endif %}
+{% endblock %}

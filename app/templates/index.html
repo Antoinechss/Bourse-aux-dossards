@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Relais — Bourse aux dossards{% endblock %}
+
+{% block content %}
+<h1>La bourse aux dossards officielle</h1>
+<p>
+  Vous ne pouvez plus courir ? Revendez votre dossard en toute sécurité.
+  L'acheteur est vérifié, et l'argent reste bloqué jusqu'à ce que
+  l'organisateur ait changé le nom sur le dossard.
+</p>
+
+<h2>Les courses</h2>
+{% if races %}
+<table>
+  <tr><th>Course</th><th>Date</th><th></th><th></th></tr>
+  {% for race in races %}
+  <tr>
+    <td>{{ race.name }}</td>
+    <td>{{ race.event_date.strftime("%d/%m/%Y") }}</td>
+    <td><a href="/runner/races/{{ race.id }}">Chercher un dossard</a></td>
+    <td><a href="/runner/races/{{ race.id }}/sell">Vendre mon dossard</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Aucune course pour l'instant.</p>
+{% endif %}
+{% endblock %}

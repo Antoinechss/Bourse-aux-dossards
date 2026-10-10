@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Boîte mail de démo — Relais{% endblock %}
+
+{% block content %}
+<h1>Boîte mail de démo</h1>
+<p>
+  Relais n'envoie aucun vrai email : chaque message destiné à un coureur est rangé ici.
+  La liste se met à jour toute seule.
+</p>
+
+{% if recipients %}
+<p>
+  Destinataire :
+  <a href="/inbox" {% if not email %}aria-current="page"{% endif %}>tous</a>
+  {% for recipient in recipients %}
+  · <a href="/inbox?email={{ recipient | urlencode }}" {% if recipient == email %}aria-current="page"{% endif %}>{{ recipient }}</a>
+  {% endfor %}
+</p>
+{% endif %}
+
+{# Toutes les 5 secondes, HTMX recharge la page en arrière-plan et n'en remplace que la liste. #}
+<div id="messages" hx-get="/inbox?email={{ email | urlencode }}" hx-trigger="every 5s" hx-select="#messages" hx-swap="outerHTML">
+  {% for notification in notifications %}
+  <article class="message">
+    <p class="muted">À {{ notification.recipient_email }}, le {{ notification.created_at | local_time }}</p>
+    <h2>{{ notification.subject }}</h2>
+    <p>{{ notification.body }}</p>
+    {% if notification.link %}<p><a href="{{ notification.link }}">Ouvrir dans Relais</a></p>{% endif %}
+  </article>
+  {% else %}
+  <p>Aucun message pour l'instant.</p>
+  {% endfor %}
+</div>
+{% endblock %}

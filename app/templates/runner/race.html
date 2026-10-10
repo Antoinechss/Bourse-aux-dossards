@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}{{ race.name }} — Relais{% endblock %}
+
+{% block content %}
+<h1>{{ race.name }}</h1>
+<p>Course du {{ race.event_date.strftime("%d/%m/%Y") }}.</p>
+
+{% if closed %}
+<p class="error">{{ closed }}</p>
+{% else %}
+<h2>Dossards en vente</h2>
+{% set total = market.free + market.offered %}
+<p>
+  {% if total == 0 %}
+  Aucun dossard n'est en vente pour l'instant.
+  {% else %}
+  {{ total }} dossard{{ "s" if total > 1 }} en vente{% if market.offered %}, dont {{ market.offered }} déjà
+  proposé{{ "s" if market.offered > 1 }} à un coureur de la liste d'attente{% endif %}.
+  {% endif %}
+  {{ market.waiting }} coureur{{ "s" if market.waiting > 1 }} sur la liste d'attente.
+</p>
+{% if rules %}
+<ul>
+  {% if rules.max_resale_price_cents is not none %}
+  <li>Prix de revente maximum : {{ rules.max_resale_price_cents | euros }} €</li>
+  {% endif %}
+  {% if rules.transfer_deadline %}
+  <li>Transferts possibles jusqu'au {{ rules.transfer_deadline.strftime("%d/%m/%Y") }}</li>
+  {% endif %}
+  {% if rules.required_proofs %}
+  <li>Justificatif demandé à l'acheteur : {{ rules.required_proofs | map("string") | map("replace", "LICENCE_FFA", "licence FFA") | join(" ou ") }}</li>
+  {% endif %}
+</ul>
+{% endif %}
+
+<h2>Rejoindre la liste d'attente</h2>
+<p>
+  Les dossards sont proposés aux coureurs dans l'ordre de leur inscription. Quand vient votre tour,
+  vous avez 48 heures pour payer ; sinon le dossard passe au suivant.
+</p>
+<form hx-post="/runner/races/{{ race.id }}/waitlist" hx-target="#waitlist-result" hx-disabled-elt="find button">
+  <label>Prénom <input name="first_name" autocomplete="given-name" required></label>
+  <label>Nom <input name="last_name" autocomplete="family-name" required></label>
+  <label>Email <input type="email" name="email" autocomplete="email" required></label>
+  <button type="submit">Rejoindre la liste d'attente</button>
+</form>
+<div id="waitlist-result" role="status"></div>
+
+<h2>Vous ne pouvez plus courir ?</h2>
+<p><a href="/runner/races/{{ race.id }}/sell">Mettre mon dossard en vente</a></p>
+{% endif %}
+{% endblock %}

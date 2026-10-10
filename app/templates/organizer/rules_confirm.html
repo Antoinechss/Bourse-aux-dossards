@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Règles lues — {{ race.name }}{% endblock %}
+
+{# La citation voyage dans un champ caché pour être enregistrée avec la règle à la confirmation. #}
+{% macro source(name, text) %}
+<input type="hidden" name="{{ name }}" value="{{ text }}">
+{% if text %}<blockquote>{{ text }}</blockquote>{% else %}<p class="muted">Aucune mention dans le règlement.</p>{% endif %}
+{% endmacro %}
+
+{% block content %}
+<p><a href="/organizer/races/{{ race.id }}/rules">← Recommencer avec un autre PDF</a></p>
+<h1>Relisez les règles lues</h1>
+<p>
+  Voici ce que Relais a lu dans le règlement de <strong>{{ race.name }}</strong>. Sous chaque règle figure la phrase
+  dont elle est tirée. Corrigez ce qui doit l'être, puis confirmez : rien n'est enregistré avant.
+</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if form.transfer_allowed == "false" %}
+<p class="error">Ce règlement interdit le transfert de dossard : la revente n'est pas ouverte pour cette course.</p>
+{% endif %}
+
+<form method="post" action="/organizer/races/{{ race.id }}/rules">
+  <fieldset>
+    <legend>Transfert de dossard</legend>
+    <select name="transfer_allowed">
+      <option value="" {{ "selected" if form.transfer_allowed == "" }}>Non précisé</option>
+      <option value="true" {{ "selected" if form.transfer_allowed == "true" }}>Autorisé</option>
+      <option value="false" {{ "selected" if form.transfer_allowed == "false" }}>Interdit</option>
+    </select>
+    {{ source("transfer_allowed_quote", form.transfer_allowed_quote) }}
+  </fieldset>
+
+  <fieldset>
+    <legend>Date limite de transfert</legend>
+    <input type="date" name="transfer_deadline" value="{{ form.transfer_deadline }}">
+    {{ source("transfer_deadline_quote", form.transfer_deadline_quote) }}
+  </fieldset>
+
+  <fieldset>
+    <legend>Prix de revente maximum</legend>
+    <input type="text" inputmode="decimal" name="max_resale_price" value="{{ form.max_resale_price }}" placeholder="Non précisé"> €
+    {{ source("max_resale_price_quote", form.max_resale_price_quote) }}
+  </fieldset>
+
+  <fieldset>
+    <legend>Frais de transfert</legend>
+    <input type="text" inputmode="decimal" name="transfer_fee" value="{{ form.transfer_fee }}" placeholder="Non précisé"> €
+    {{ source("transfer_fee_quote", form.transfer_fee_quote) }}
+  </fieldset>
+
+  <fieldset>
+    <legend>Justificatifs acceptés</legend>
+    <label><input type="checkbox" name="required_proofs" value="PPS" {{ "checked" if "PPS" in form.required_proofs }}> PPS</label>
+    <label><input type="checkbox" name="required_proofs" value="LICENCE_FFA" {{ "checked" if "LICENCE_FFA" in form.required_proofs }}> Licence FFA</label>
+    {{ source("required_proofs_quote", form.required_proofs_quote) }}
+  </fieldset>
+
+  <button type="submit">Confirmer et enregistrer</button>
+</form>
+{% endblock %}

@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Base SQLite locale
+*.db
+
+# macOS
+.DS_Store

@@ -1,0 +1,11 @@
+{% if offer %}
+<p class="notice">
+  Bonne nouvelle {{ entry.first_name }} : un dossard est disponible pour vous.
+  <a href="/runner/transfers/{{ offer.id }}">Voir l'offre</a>
+</p>
+{% else %}
+<p class="notice">
+  C'est noté {{ entry.first_name }} : vous êtes n°{{ position }} sur la liste d'attente.
+  Nous écrirons à {{ entry.email }} dès qu'un dossard vous sera proposé.
+</p>
+{% endif %}

@@ -1,0 +1,27 @@
+[project]
+name = "relais"
+version = "0.1.0"
+description = "Bourse aux dossards officielle pour organisateurs de courses à pied"
+requires-python = ">=3.13.2"
+dependencies = [
+    "anthropic>=1.13.0",
+    "fastapi[standard]>=0.143.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "paypal-server-sdk>=2.4.0",
+    "python-dotenv>=1.2.4",
+    "sqlmodel>=0.0.48",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "reportlab>=5.0.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Les tests "live" appellent la vraie API Anthropic (quelques centimes) : uv run pytest -m live
+markers = ["live: appelle la vraie API Anthropic"]
+addopts = "-m 'not live'"

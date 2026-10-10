@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Relais{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  {# Par défaut HTMX n'affiche pas une réponse d'erreur. On l'autorise pour 422 : nos messages de formulaire. #}
+  <meta name="htmx-config" content='{"responseHandling": [{"code": "204", "swap": false}, {"code": "[23]..", "swap": true}, {"code": "422", "swap": true}, {"code": "[45]..", "swap": false, "error": true}]}'>
+  <script src="{{ url_for('static', path='htmx.min.js') }}" defer></script>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">Relais</a>
+    <nav>
+      <a href="/">Courses</a>
+      <a href="/inbox">Boîte mail de démo</a>
+      <a href="/organizer">Espace organisateur</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <small>Démo — PayPal sandbox, aucun paiement réel. Environnement : {{ app_env }}</small>
+  </footer>
+</body>
+</html>

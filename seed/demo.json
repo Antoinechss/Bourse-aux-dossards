@@ -1,0 +1,82 @@
+{
+  "races": [
+    {
+      "name": "Trail des Crêtes de Valombre",
+      "event_date": "2027-04-11",
+      "rules": {
+        "transfer_allowed": true,
+        "transfer_allowed_quote": "Article 9 — Le transfert de dossard est autorisé uniquement via la bourse officielle de l'organisation.",
+        "transfer_deadline": "2027-03-28",
+        "transfer_deadline_quote": "Article 9 — Aucun transfert n'est accepté après le 28 mars 2027.",
+        "max_resale_price_cents": 4500,
+        "max_resale_price_quote": "Article 9 — Le prix de revente ne peut excéder le tarif d'inscription, soit 45 €.",
+        "transfer_fee_cents": 500,
+        "transfer_fee_quote": "Article 9 — Des frais de dossier de 5 € sont perçus par l'organisation pour chaque transfert.",
+        "required_proofs": ["LICENCE_FFA", "PPS"],
+        "required_proofs_quote": "Article 5 — Chaque participant doit fournir une licence FFA en cours de validité ou un Parcours de Prévention Santé (PPS) valide à la date de l'épreuve."
+      },
+      "registrations": [
+        {"bib_number": 101, "first_name": "Camille", "last_name": "Roussel"},
+        {"bib_number": 102, "first_name": "Théo", "last_name": "Marchand"},
+        {"bib_number": 103, "first_name": "Inès", "last_name": "Fabre"},
+        {"bib_number": 104, "first_name": "Hugo", "last_name": "Lemoine"},
+        {"bib_number": 105, "first_name": "Sarah", "last_name": "Benoît"},
+        {"bib_number": 106, "first_name": "Julien", "last_name": "Perrot"},
+        {"bib_number": 107, "first_name": "Élise", "last_name": "Carpentier"},
+        {"bib_number": 108, "first_name": "Maxime", "last_name": "Aubry"}
+      ]
+    },
+    {
+      "name": "10 km de Port-Clair",
+      "event_date": "2027-05-23",
+      "rules": {
+        "transfer_allowed": true,
+        "transfer_allowed_quote": "Article 6 — Tout coureur empêché peut céder son dossard à un tiers par l'intermédiaire de l'organisation.",
+        "transfer_deadline": null,
+        "transfer_deadline_quote": null,
+        "max_resale_price_cents": 2200,
+        "max_resale_price_quote": "Article 6 — Le dossard ne peut être cédé à un prix supérieur à 22 €.",
+        "transfer_fee_cents": null,
+        "transfer_fee_quote": null,
+        "required_proofs": ["LICENCE_FFA", "PPS"],
+        "required_proofs_quote": "Article 4 — La participation est subordonnée à la présentation d'une licence FFA ou d'un PPS en cours de validité le jour de la course."
+      },
+      "registrations": [
+        {"bib_number": 1, "first_name": "Léa", "last_name": "Guillot"},
+        {"bib_number": 2, "first_name": "Antoine", "last_name": "Barbier"},
+        {"bib_number": 3, "first_name": "Manon", "last_name": "Chevallier"},
+        {"bib_number": 4, "first_name": "Nicolas", "last_name": "Renaud"},
+        {"bib_number": 5, "first_name": "Chloé", "last_name": "Masson"},
+        {"bib_number": 6, "first_name": "Romain", "last_name": "Hubert"},
+        {"bib_number": 7, "first_name": "Pauline", "last_name": "Collet"},
+        {"bib_number": 8, "first_name": "Bastien", "last_name": "Leclerc"}
+      ]
+    },
+    {
+      "name": "Semi-marathon de Montbrisac",
+      "event_date": "2027-03-14",
+      "rules": {
+        "transfer_allowed": true,
+        "transfer_allowed_quote": "Article 11 — Le changement de titulaire d'un dossard est possible sur demande auprès de l'organisation.",
+        "transfer_deadline": "2027-03-07",
+        "transfer_deadline_quote": "Article 11 — Les changements de titulaire sont clos sept jours avant l'épreuve, soit le 7 mars 2027.",
+        "max_resale_price_cents": null,
+        "max_resale_price_quote": null,
+        "transfer_fee_cents": 0,
+        "transfer_fee_quote": "Article 11 — Cette opération est gratuite.",
+        "required_proofs": ["LICENCE_FFA", "PPS"],
+        "required_proofs_quote": "Article 5 — Les coureurs doivent être titulaires d'une licence FFA ou d'un Parcours de Prévention Santé (PPS) valide."
+      },
+      "registrations": [
+        {"bib_number": 2001, "first_name": "Margaux", "last_name": "Vasseur"},
+        {"bib_number": 2002, "first_name": "Quentin", "last_name": "Besson"},
+        {"bib_number": 2003, "first_name": "Anaïs", "last_name": "Tessier"},
+        {"bib_number": 2004, "first_name": "Florian", "last_name": "Pichon"},
+        {"bib_number": 2005, "first_name": "Clara", "last_name": "Maillard"},
+        {"bib_number": 2006, "first_name": "Damien", "last_name": "Brunet"},
+        {"bib_number": 2007, "first_name": "Océane", "last_name": "Lacroix"},
+        {"bib_number": 2008, "first_name": "Sylvain", "last_name": "Gaillard"}
+      ]
+    }
+  ]
+}

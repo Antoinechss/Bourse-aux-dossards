@@ -1,0 +1,138 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1rem;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+header .brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+footer {
+  margin-top: 3rem;
+  color: #666;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+fieldset {
+  margin: 0 0 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+}
+
+legend {
+  font-weight: 600;
+}
+
+fieldset label {
+  margin-right: 1rem;
+}
+
+blockquote {
+  margin: 0.5rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid #bbb;
+  color: #444;
+}
+
+.muted {
+  margin: 0.5rem 0 0;
+  color: #666;
+}
+
+.notice, .error {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+}
+
+.notice {
+  background: #e8f5e9;
+}
+
+.error {
+  background: #fdecea;
+}
+
+
+nav a {
+  margin-left: 1rem;
+}
+
+form label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+form label input:not([type="checkbox"]) {
+  display: block;
+  margin-top: 0.2rem;
+  padding: 0.35rem;
+  width: 100%;
+  max-width: 22rem;
+  box-sizing: border-box;
+}
+
+button, a.button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: #1a1a1a;
+  color: white;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* Les étapes de la page de suivi : faites, en cours, à venir. */
+.steps {
+  padding-left: 1.5rem;
+  color: #999;
+}
+
+.steps .done {
+  color: #2e7d32;
+}
+
+.steps .current {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.message {
+  padding: 0.5rem 0 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.message h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}

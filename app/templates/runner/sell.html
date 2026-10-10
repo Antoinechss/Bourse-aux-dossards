@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Vendre mon dossard — {{ race.name }}{% endblock %}
+
+{% block content %}
+<p><a href="/runner/races/{{ race.id }}">← {{ race.name }}</a></p>
+<h1>Vendre mon dossard</h1>
+
+{% if closed %}
+<p class="error">{{ closed }}</p>
+{% else %}
+<p>
+  Votre dossard sera proposé aux coureurs de la liste d'attente. Vous êtes payé sur votre compte PayPal
+  une fois l'acheteur vérifié et le dossard mis à son nom par l'organisateur.
+</p>
+{% set cap = rules.max_resale_price_cents if rules else none %}
+<form hx-post="/runner/races/{{ race.id }}/listings" hx-target="#sell-result" hx-disabled-elt="find button">
+  <label>Numéro de dossard <input name="bib_number" inputmode="numeric" required></label>
+  <label>Prénom, tel qu'à l'inscription <input name="first_name" autocomplete="given-name" required></label>
+  <label>Nom, tel qu'à l'inscription <input name="last_name" autocomplete="family-name" required></label>
+  <label>Email de votre compte PayPal, pour être payé <input type="email" name="email" autocomplete="email" required></label>
+  <label>
+    Prix demandé, en euros{% if cap is not none %} ({{ cap | euros }} € au plus, d'après le règlement){% endif %}
+    {# Chaque saisie est contrôlée par le serveur, qui répond dans #price-hint. #}
+    <input name="price" inputmode="decimal" required
+           hx-get="/runner/races/{{ race.id }}/price-check" hx-trigger="input changed delay:300ms" hx-target="#price-hint">
+  </label>
+  <div id="price-hint" role="status"></div>
+  <button type="submit">Mettre en vente</button>
+</form>
+<div id="sell-result" role="status"></div>
+{% endif %}
+{% endblock %}

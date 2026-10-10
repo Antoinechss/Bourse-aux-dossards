@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Règlement — {{ race.name }}{% endblock %}
+
+{% macro rule_row(label, value, quote) %}
+<tr>
+  <th scope="row">{{ label }}</th>
+  <td>{{ value if value is not none else "Non précisé" }}</td>
+  <td>{% if quote %}<q>{{ quote }}</q>{% elif value is not none %}Saisie par l'organisateur{% endif %}</td>
+</tr>
+{% endmacro %}
+
+{% block content %}
+<p><a href="/organizer">← Toutes les courses</a></p>
+<h1>{{ race.name }}</h1>
+<p>Course du {{ race.event_date.strftime("%d/%m/%Y") }}.</p>
+
+{% if saved %}<p class="notice">Les règles sont enregistrées.</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if rules %}
+<h2>Règles en vigueur</h2>
+{% if rules.transfer_allowed == false %}
+<p class="error">Ce règlement interdit le transfert de dossard : la revente n'est pas ouverte pour cette course.</p>
+{% endif %}
+{% set proof_labels = {"PPS": "PPS", "LICENCE_FFA": "Licence FFA"} %}
+<table>
+  <tr><th>Règle</th><th>Valeur</th><th>Dans le règlement</th></tr>
+  {{ rule_row("Transfert de dossard",
+              none if rules.transfer_allowed is none else ("Autorisé" if rules.transfer_allowed else "Interdit"),
+              rules.transfer_allowed_quote) }}
+  {{ rule_row("Date limite de transfert",
+              rules.transfer_deadline.strftime("%d/%m/%Y") if rules.transfer_deadline else none,
+              rules.transfer_deadline_quote) }}
+  {{ rule_row("Prix de revente maximum",
+              none if rules.max_resale_price_cents is none else (rules.max_resale_price_cents | euros) ~ " €",
+              rules.max_resale_price_quote) }}
+  {{ rule_row("Frais de transfert",
+              none if rules.transfer_fee_cents is none else ("Gratuit" if rules.transfer_fee_cents == 0 else (rules.transfer_fee_cents | euros) ~ " €"),
+              rules.transfer_fee_quote) }}
+  {{ rule_row("Justificatifs acceptés",
+              (rules.required_proofs | map("string") | map("replace", "LICENCE_FFA", "Licence FFA") | join(" ou ")) if rules.required_proofs else none,
+              rules.required_proofs_quote) }}
+</table>
+{% else %}
+<p>Aucune règle n'est encore enregistrée pour cette course.</p>
+{% endif %}
+
+<h2>{{ "Remplacer le règlement" if rules else "Déposer le règlement" }}</h2>
+<p>Déposez le PDF du règlement. Relais y lit les règles de revente, puis vous les relisez avant qu'elles soient enregistrées.</p>
+<form method="post" action="/organizer/races/{{ race.id }}/rules/extract" enctype="multipart/form-data"
+      onsubmit="const b = this.querySelector('button'); b.disabled = true; b.textContent = 'Lecture en cours…';">
+  <input type="file" name="reglement" accept="application/pdf" required>
+  <button type="submit">Lire le règlement</button>
+</form>
+{% endblock %}
