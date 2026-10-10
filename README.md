@@ -137,7 +137,7 @@ Open <http://127.0.0.1:8000>.
 **7. Run the tests:**
 
 ```bash
-uv run pytest            # 388 tests; PayPal and Claude are replaced by fakes
+uv run pytest            # 390 tests; PayPal and Claude are replaced by fakes
 uv run pytest -m live    # 9 more tests that call the real Claude API on the files in seed/ (costs a few cents)
 ```
 
@@ -183,7 +183,7 @@ Open "Espace organisateur" (organizer area) in the header.
 
 Other sample files: `pps-karim-benali.pdf` (valid until 12 May 2027), `carte-salle-de-sport.png` (a gym card, not an accepted proof), and four more race rules in `seed/reglements/`, including one that says nothing about resale.
 
-The registered runners of each race are listed at `/registry/races/1/registrations` (then `2`, `3`): a bib can only be listed under its holder's name.
+A bib can only be listed under its holder's name. Each race has its own bib numbers: the sell page lists the registered runners of its race under "Démo : quels dossards puis-je vendre ?" (demo: which bibs can I sell?).
 
 ## Deploy
 

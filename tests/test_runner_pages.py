@@ -132,6 +132,19 @@ def test_joining_when_a_bib_is_waiting_links_to_the_offer(client, session, race,
 # --- La mise en vente ---
 
 
+def test_sell_page_lists_the_registered_runners_of_the_demo_registry(client, race, rules):
+    page = client.get(f"/runner/races/{race.id}/sell").text
+
+    assert "<td>42</td><td>Jean</td><td>Dupont</td>" in page
+
+
+def test_unknown_bib_error_names_the_race(client, race, rules):
+    response = client.post(f"/runner/races/{race.id}/listings", data={**SELLER, "bib_number": "101"})
+
+    assert response.status_code == 422
+    assert "Aucun dossard n°101 parmi les inscrits de « Trail des Crêtes »." in response.text
+
+
 def test_sell_page_shows_the_price_cap(client, race, rules):
     assert "45,00 € au plus, d'après le règlement" in client.get(f"/runner/races/{race.id}/sell").text
 

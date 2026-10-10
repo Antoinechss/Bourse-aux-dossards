@@ -187,7 +187,7 @@ def create_listing(
     # Seul le titulaire du dossard peut le vendre : son nom doit être celui du registre de l'organisateur.
     registration = get_registration(session, race.id, bib_number)
     if registration is None:
-        raise MarketError(f"Aucun dossard n°{bib_number} parmi les inscrits de cette course.")
+        raise MarketError(f"Aucun dossard n°{bib_number} parmi les inscrits de « {race.name} ».")
     holder = f"{registration.first_name} {registration.last_name}"
     if compare_names(holder, f"{first_name} {last_name}") is not NameMatch.EXACT:
         raise MarketError(f"Le dossard n°{bib_number} n'est pas inscrit à ce nom.")

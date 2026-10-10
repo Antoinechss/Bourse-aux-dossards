@@ -13,6 +13,20 @@
   Votre dossard sera proposé aux coureurs de la liste d'attente. Vous êtes payé sur votre compte PayPal
   une fois l'acheteur vérifié et le dossard mis à son nom par l'organisateur.
 </p>
+<details>
+  <summary>Démo : quels dossards puis-je vendre ?</summary>
+  <p class="muted">
+    Seul le titulaire d'un dossard peut le vendre : son numéro et son nom doivent être ceux du registre de
+    l'organisateur. Ce registre est simulé ; voici les inscrits de cette course.
+  </p>
+  <table>
+    <tr><th>Dossard</th><th>Prénom</th><th>Nom</th></tr>
+    {% for registration in registrations %}
+    <tr><td>{{ registration.bib_number }}</td><td>{{ registration.first_name }}</td><td>{{ registration.last_name }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+
 {% set cap = rules.max_resale_price_cents if rules else none %}
 {# hx-disinherit : le champ du prix fait ses propres requêtes et ne doit pas hériter du blocage du bouton. #}
 <form hx-post="/runner/races/{{ race.id }}/listings" hx-target="#sell-result" hx-disabled-elt="find button"

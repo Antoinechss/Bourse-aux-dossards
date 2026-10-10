@@ -206,3 +206,11 @@ button.secondary {
   background: #fff3e0;
   font-size: 0.9rem;
 }
+
+details {
+  margin-bottom: 1rem;
+}
+
+summary {
+  cursor: pointer;
+}

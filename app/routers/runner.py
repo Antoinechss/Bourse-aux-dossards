@@ -21,6 +21,7 @@ from app.notifications import notify
 from app.payments import service
 from app.payments.client import PayPalError
 from app.payments.commission import compute_amounts
+from app.registry_mock.registry import list_registrations
 from app.templating import euros, templates
 from app.transfers.state import InvalidTransition, TransferEvent, TransferState, next_state
 from app.transfers.verification import MAX_PROOF_BYTES, submit_proof
@@ -182,7 +183,10 @@ def join_waitlist(
 
 @router.get("/races/{race_id}/sell", response_class=HTMLResponse)
 def sell_page(race_id: int, request: Request, session: SessionDep):
-    return templates.TemplateResponse(request, "runner/sell.html", race_context(session, get_race(session, race_id)))
+    race = get_race(session, race_id)
+    # Le registre est simulé : on montre ses inscrits, pour qu'un visiteur de la démo sache quel dossard vendre.
+    context = {**race_context(session, race), "registrations": list_registrations(session, race.id)}
+    return templates.TemplateResponse(request, "runner/sell.html", context)
 
 
 @router.get("/races/{race_id}/price-check", response_class=HTMLResponse)
