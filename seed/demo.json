@@ -4,6 +4,10 @@
       "name": "Trail des Crêtes de Valombre",
       "event_date": "2027-04-11",
       "distance": "25 km",
+      "minimum_age": 18,
+      "listings": [
+        {"bib_number": 105, "price_cents": 4500}
+      ],
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 9 — Le transfert de dossard est autorisé uniquement via la bourse officielle de l'organisation.",
@@ -31,6 +35,11 @@
       "name": "10 km de Port-Clair",
       "event_date": "2027-05-23",
       "distance": "10 km",
+      "minimum_age": 16,
+      "listings": [
+        {"bib_number": 4, "price_cents": 2000},
+        {"bib_number": 7, "price_cents": 2200}
+      ],
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 6 — Tout coureur empêché peut céder son dossard à un tiers par l'intermédiaire de l'organisation.",
@@ -58,6 +67,11 @@
       "name": "Semi-marathon de Montbrisac",
       "event_date": "2027-03-14",
       "distance": "21,1 km",
+      "minimum_age": 18,
+      "listings": [
+        {"bib_number": 2003, "price_cents": 3000},
+        {"bib_number": 2006, "price_cents": 2800}
+      ],
       "rules": {
         "transfer_allowed": true,
         "transfer_allowed_quote": "Article 11 — Le changement de titulaire d'un dossard est possible sur demande auprès de l'organisation.",

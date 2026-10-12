@@ -1,6 +1,5 @@
-"""Espace de l'organisateur : tableau de bord des transferts, décisions, et règlement de chaque course."""
+"""Espace de l'organisateur : tableau de bord des transferts, justificatifs à vérifier, règlement de chaque course."""
 
-import logging
 
 from datetime import date
 from typing import Annotated
@@ -23,18 +22,16 @@ from app.models import (
     RaceRules,
     RaceRulesRow,
     Transfer,
-    Verdict,
     Verification,
-    WaitlistEntry,
+    Buyer,
 )
-from app.payments.client import PayPalError
 from app.payments.commission import compute_amounts
 from app.templating import euros, templates
+from app.ai.verifier import account_signals
 from app.transfers.state import TransferState
-from app.transfers.verification import DecisionError, approve, awaits_decision, refuse
+from app.transfers.verification import DecisionError, ProofStatus, approve, awaits_decision, proof_status, refuse
 
 router = APIRouter(prefix="/organizer", tags=["organizer"])
-logger = logging.getLogger(__name__)
 
 MAX_PDF_BYTES = 20 * 1024 * 1024
 
@@ -153,29 +150,27 @@ def confirm_rules(race_id: int, request: Request, session: SessionDep, form: Ann
 # --- Le tableau de bord des transferts ---
 
 STATE_LABELS = {
+    TransferState.DOSSARD_VERIFIE: "Dossard vérifié",
     TransferState.EN_VENTE: "En vente",
     TransferState.RESERVE: "Réservé",
-    TransferState.AUTORISE: "Autorisé",
-    TransferState.VERIFIE: "Vérifié",
+    TransferState.ELIGIBLE: "Acheteur éligible",
+    TransferState.AUTORISE: "Paiement autorisé",
     TransferState.NOM_CHANGE: "Nom changé",
     TransferState.ENCAISSE: "Encaissé",
     TransferState.VERSE: "Versé",
-    TransferState.REFUSE: "Refusé",
-    TransferState.OFFRE_EXPIREE: "Offre expirée",
+    TransferState.RESERVATION_EXPIREE: "Réservation expirée",
+    TransferState.INELIGIBLE: "Acheteur inéligible",
+    TransferState.REFUSE: "Transfert refusé",
+}
+PROOF_LABELS = {
+    ProofStatus.A_FOURNIR: "À fournir",
+    ProofStatus.A_VERIFIER: "À vérifier",
+    ProofStatus.FOURNI: "Fourni",
 }
 # À partir de ces états, le dossard est au nom de son nouveau coureur.
 REASSIGNED = (TransferState.NOM_CHANGE, TransferState.ENCAISSE, TransferState.VERSE)
-
-
-def decision_label(transfer: Transfer, verification: Verification | None) -> str:
-    """Qui a validé ou refusé ce transfert, en clair."""
-    if verification is None:
-        return "Justificatif attendu" if transfer.state is TransferState.AUTORISE else ""
-    if verification.organizer_approved is True:
-        return "Validé par l'organisateur"
-    if verification.organizer_approved is False:
-        return "Refusé par l'organisateur"
-    return "Validation automatique" if verification.verdict is Verdict.VERT else "À décider"
+# Le justificatif n'a de sens qu'une fois le dossard payé.
+PURCHASED = (TransferState.AUTORISE, *REASSIGNED)
 
 
 def indicators(session: Session, transfers: list[Transfer]) -> dict:
@@ -193,14 +188,28 @@ def indicators(session: Session, transfers: list[Transfer]) -> dict:
     }
 
 
+def reseller_signal(session: Session, listing: Listing, buyer: Buyer | None) -> str:
+    """Le signal anti-revendeur à montrer à l'organisateur, ou une chaîne vide. Il n'empêche aucune vente."""
+    notes = []
+    seller = account_signals(session, listing.seller_email)
+    if seller.suspicious:
+        notes.append(seller.describe("vendeur"))
+    if buyer is not None:
+        signals = account_signals(session, buyer.email)
+        if signals.suspicious:
+            notes.append(signals.describe("acheteur"))
+    text = " ; ".join(notes)
+    return text[:1].upper() + text[1:] + "." if text else ""
+
+
 @router.get("/api/dashboard")
 def dashboard_data(session: SessionDep) -> dict:
     """Les indicateurs et une ligne par transfert, du plus récent au plus ancien, pour la table AG Grid."""
     transfers = session.exec(select(Transfer).order_by(Transfer.id.desc())).all()
     listings = {listing.id: listing for listing in session.exec(select(Listing))}
     races = {race.id: race for race in session.exec(select(Race))}
-    buyers = {entry.id: entry for entry in session.exec(select(WaitlistEntry))}
-    # Le dernier verdict de chaque transfert : les suivants remplacent les précédents.
+    buyers = {buyer.id: buyer for buyer in session.exec(select(Buyer))}
+    # La dernière analyse de chaque transfert : les suivantes remplacent les précédentes.
     verifications = {v.transfer_id: v for v in session.exec(select(Verification).order_by(Verification.id))}
 
     rows = []
@@ -209,6 +218,7 @@ def dashboard_data(session: SessionDep) -> dict:
         race = races[listing.race_id]
         buyer = buyers.get(transfer.buyer_id)
         verification = verifications.get(transfer.id)
+        purchased = transfer.state in PURCHASED
         amounts = compute_amounts(listing.price_cents, race.platform_fee_bps, race.organizer_fee_bps)
         rows.append(
             {
@@ -221,11 +231,12 @@ def dashboard_data(session: SessionDep) -> dict:
                 "price_cents": amounts.price_cents,
                 "organizer_fee_cents": amounts.organizer_fee_cents,
                 "total_cents": amounts.total_cents,
-                "verdict": verification.verdict if verification else None,
+                # Le justificatif de l'acheteur : un statut à part, qui ne bloque ni l'achat ni le paiement.
+                "proof": proof_status(verification) if purchased else None,
+                "proof_label": PROOF_LABELS[proof_status(verification)] if purchased else "",
                 "explanation": verification.explanation if verification else None,
-                "decision": decision_label(transfer, verification),
-                "can_approve": awaits_decision(transfer, verification),
-                "can_refuse": transfer.state is TransferState.AUTORISE,
+                "signal": reseller_signal(session, listing, buyer),
+                "can_decide": purchased and awaits_decision(verification),
             }
         )
     return {"indicators": indicators(session, transfers), "transfers": rows}
@@ -239,24 +250,22 @@ def get_transfer(session: Session, transfer_id: int) -> Transfer:
 
 
 @router.post("/api/transfers/{transfer_id}/approve")
-def approve_transfer(transfer_id: int, session: SessionDep) -> dict:
+def approve_proof(transfer_id: int, session: SessionDep) -> dict:
+    """L'organisateur accepte un justificatif que l'IA n'avait pas mis au vert."""
     transfer = get_transfer(session, transfer_id)
     try:
         approve(session, transfer)
     except DecisionError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
-    return {"state": transfer.state}
+    return {"proof": ProofStatus.FOURNI}
 
 
 @router.post("/api/transfers/{transfer_id}/refuse")
-def refuse_transfer(transfer_id: int, session: SessionDep) -> dict:
+def refuse_proof(transfer_id: int, session: SessionDep) -> dict:
+    """L'organisateur refuse le justificatif : l'acheteur devra en déposer un autre. Le paiement ne bouge pas."""
     transfer = get_transfer(session, transfer_id)
     try:
         refuse(session, transfer)
     except DecisionError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
-    except PayPalError as error:
-        logger.error("Annulation refusée par PayPal pour le transfert %s : %s", transfer_id, error)
-        detail = "PayPal n'a pas pu annuler l'autorisation : le transfert n'est pas refusé. Réessayez."
-        raise HTTPException(status_code=502, detail=detail) from error
-    return {"state": transfer.state}
+    return {"proof": ProofStatus.A_FOURNIR}

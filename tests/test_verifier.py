@@ -13,7 +13,7 @@ from app.ai.verifier import (
     compare_names,
     read_proof,
 )
-from app.models import Listing, ProofType, RaceRulesRow, Verdict, WaitlistEntry, utcnow
+from app.models import Listing, ProofType, RaceRulesRow, Verdict, Buyer, utcnow
 
 RACE_DAY = date(2027, 4, 11)
 RESELLER = AccountSignals(listing_count=4, at_cap_count=3, is_recent=True)
@@ -198,7 +198,7 @@ def test_account_is_recent_only_if_it_was_first_seen_this_week(session, race):
     session.add_all(
         [
             # Ancien compte : inscrit en liste d'attente il y a un mois, vend un dossard aujourd'hui.
-            WaitlistEntry(race_id=race.id, first_name="A", last_name="B", email="ancien@example.com", created_at=long_ago),
+            Buyer(race_id=race.id, first_name="A", last_name="B", email="ancien@example.com", created_at=long_ago),
             Listing(race_id=race.id, bib_number=1, seller_email="ancien@example.com", price_cents=4000, created_at=yesterday),
             Listing(race_id=race.id, bib_number=2, seller_email="nouveau@example.com", price_cents=4000, created_at=yesterday),
         ]

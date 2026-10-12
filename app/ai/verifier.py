@@ -17,7 +17,7 @@ from sqlmodel import Session, func, select
 from app.ai import fake
 from app.ai.client import extract
 from app.config import settings
-from app.models import Listing, ProofType, RaceRulesRow, Verdict, WaitlistEntry, utcnow
+from app.models import Listing, ProofType, RaceRulesRow, Verdict, Buyer, utcnow
 
 # Seuils des signaux anti-revendeur.
 MANY_LISTINGS = 3
@@ -132,7 +132,7 @@ def account_signals(session: Session, email: str, now: datetime | None = None) -
     """Calcule en base les signaux d'un compte : ses annonces, leur prix, et son ancienneté."""
     email = email.lower()
     listings = session.exec(select(Listing).where(func.lower(Listing.seller_email) == email)).all()
-    entries = session.exec(select(WaitlistEntry).where(func.lower(WaitlistEntry.email) == email)).all()
+    entries = session.exec(select(Buyer).where(func.lower(Buyer.email) == email)).all()
     caps = dict(session.exec(select(RaceRulesRow.race_id, RaceRulesRow.max_resale_price_cents)).all())
     at_cap = [l for l in listings if caps.get(l.race_id) is not None and l.price_cents >= caps[l.race_id]]
     seen = [row.created_at for row in [*listings, *entries]]

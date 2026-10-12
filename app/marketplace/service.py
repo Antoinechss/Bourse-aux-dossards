@@ -1,40 +1,43 @@
-"""Marketplace : annonces, liste d'attente et offres.
+"""Marketplace : mise en vente d'un dossard vérifié, réservation par un acheteur, contrôles avant paiement.
 
-Un dossard mis en vente est proposé au premier coureur de la liste d'attente, qui a OFFER_DURATION
-pour le payer. Passé ce délai, l'offre expire et le dossard est proposé au suivant.
+Un dossard n'est en vente qu'après vérification auprès de l'organisateur. Un acheteur qui clique
+« Acheter ce dossard » le réserve quelques minutes ; ses contrôles passent avant tout paiement.
+Une réservation qui s'arrête (délai dépassé, acheteur inéligible) remet le dossard en vente.
 """
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
+from sqlalchemy import update
 from sqlmodel import Session, col, select
 
 from app.ai.verifier import NameMatch, compare_names
-from app.models import Listing, Race, RaceRulesRow, Transfer, WaitlistEntry, utcnow
+from app.config import settings
+from app.models import Buyer, Listing, Race, RaceRulesRow, Transfer, WaitlistEntry, utcnow
 from app.notifications import notify
-from app.registry_mock.registry import get_registration
-from app.templating import euros, local_time
-from app.transfers.state import TransferEvent, TransferState, next_state
+from app.registry_mock.registry import get_registration, list_registrations
+from app.templating import euros
+from app.transfers.state import FINAL_STATES, TransferEvent, TransferState, next_state
 
-OFFER_DURATION = timedelta(hours=48)
-
-# Une tentative de transfert est terminée dans ces états ; dans tous les autres, elle est en cours.
-FINISHED = (TransferState.VERSE, TransferState.REFUSE, TransferState.OFFRE_EXPIREE)
-# Dans ces états, l'acheteur est reparti sans dossard : on peut lui en proposer un autre.
-RELEASED = (TransferState.REFUSE, TransferState.OFFRE_EXPIREE)
+# Tant que l'acheteur n'a pas payé, le dossard lui est seulement réservé.
+HELD = (TransferState.RESERVE, TransferState.ELIGIBLE)
 
 
 class MarketError(Exception):
     """Demande refusée. Le message est en français et peut être montré tel quel au coureur."""
 
 
+class Ineligible(MarketError):
+    """L'acheteur n'a pas passé les contrôles. Le dossard est déjà reparti en vente, rien n'a été payé."""
+
+
 @dataclass(frozen=True)
 class RaceMarket:
     """Où en est la bourse d'une course."""
 
-    free: int  # dossards en vente que personne ne s'est encore vu proposer
-    offered: int  # dossards proposés à un coureur, qui n'a pas encore payé
-    waiting: int  # coureurs de la liste d'attente qui n'ont pas de dossard
+    free: int  # dossards en vente, que l'on peut acheter
+    reserved: int  # dossards réservés par un acheteur qui n'a pas encore payé
+    waiting: int  # coureurs qui ont demandé à être prévenus
 
 
 def rules_for(session: Session, race_id: int) -> RaceRulesRow | None:
@@ -51,128 +54,35 @@ def check_resale_open(race: Race, rules: RaceRulesRow | None, today: date) -> No
         raise MarketError(f"Les transferts sont clos depuis le {rules.transfer_deadline:%d/%m/%Y}.")
 
 
-def _race_transfers(session: Session, race_id: int, *states: TransferState) -> list[Transfer]:
-    statement = (
-        select(Transfer)
-        .join(Listing, Listing.id == Transfer.listing_id)
-        .where(Listing.race_id == race_id, col(Transfer.state).in_(states))
-        .order_by(Transfer.id)
-    )
-    return list(session.exec(statement))
-
-
-def _waiting(session: Session, race_id: int) -> list[WaitlistEntry]:
-    """La file d'attente dans l'ordre d'inscription, sans ceux qui ont un dossard ou une offre en cours."""
-    entries = session.exec(
-        select(WaitlistEntry).where(WaitlistEntry.race_id == race_id).order_by(WaitlistEntry.created_at, WaitlistEntry.id)
-    ).all()
-    busy = set(
-        session.exec(select(Transfer.buyer_id).where(col(Transfer.state).not_in(RELEASED), col(Transfer.buyer_id).is_not(None)))
-    )
-    return [entry for entry in entries if entry.id not in busy]
-
-
 def bibs_on_sale(session: Session, race_id: int) -> list[tuple[Listing, Transfer]]:
-    """Les dossards en vente de cette course, avec leur tentative en cours : les libres d'abord."""
+    """Les dossards visibles sur la page d'une course, avec leur transfert en cours : les libres d'abord."""
     statement = (
         select(Listing, Transfer)
         .join(Transfer, Transfer.listing_id == Listing.id)
-        .where(Listing.race_id == race_id, col(Transfer.state).in_((TransferState.EN_VENTE, TransferState.RESERVE)))
+        .where(Listing.race_id == race_id, col(Transfer.state).in_((TransferState.EN_VENTE, *HELD)))
     )
-    free_first = {TransferState.EN_VENTE: 0, TransferState.RESERVE: 1}
-    return sorted(session.exec(statement).all(), key=lambda pair: (free_first[pair[1].state], pair[0].bib_number))
+    return sorted(session.exec(statement).all(), key=lambda pair: (pair[1].state in HELD, pair[0].bib_number))
 
 
 def race_market(session: Session, race_id: int) -> RaceMarket:
+    states = [transfer.state for _, transfer in bibs_on_sale(session, race_id)]
+    waiting = session.exec(select(WaitlistEntry.id).where(WaitlistEntry.race_id == race_id)).all()
     return RaceMarket(
-        free=len(_race_transfers(session, race_id, TransferState.EN_VENTE)),
-        offered=len(_race_transfers(session, race_id, TransferState.RESERVE)),
-        waiting=len(_waiting(session, race_id)),
+        free=states.count(TransferState.EN_VENTE),
+        reserved=sum(1 for state in states if state in HELD),
+        waiting=len(waiting),
     )
 
 
-def next_in_line(session: Session, transfer: Transfer) -> WaitlistEntry | None:
-    """Le premier coureur de la file à qui ce dossard peut être proposé."""
-    listing = session.get(Listing, transfer.listing_id)
-    already_offered = set(session.exec(select(Transfer.buyer_id).where(Transfer.listing_id == listing.id)))
-    for entry in _waiting(session, listing.race_id):
-        if entry.email.lower() == listing.seller_email.lower():
-            continue  # on ne propose pas son propre dossard au vendeur
-        if entry.id in already_offered:
-            continue  # il a déjà laissé passer ce dossard
-        return entry
-    return None
+# --- Mise en vente ---
 
 
-def offer_next(session: Session, transfer: Transfer, now: datetime | None = None) -> WaitlistEntry | None:
-    """Propose le dossard au suivant de la liste d'attente. S'il n'y a personne, il reste EN_VENTE."""
-    listing = session.get(Listing, transfer.listing_id)
-    race = session.get(Race, listing.race_id)
-    try:
-        check_resale_open(race, rules_for(session, race.id), date.today())
-    except MarketError:
-        return None
-    entry = next_in_line(session, transfer)
-    if entry is None:
-        return None
-    transfer.buyer_id = entry.id
-    transfer.state = next_state(transfer.state, TransferEvent.RESERVER)
-    transfer.offer_expires_at = (now or utcnow()) + OFFER_DURATION
+def put_on_sale(session: Session, listing: Listing) -> Transfer:
+    """Ouvre un nouveau transfert pour ce dossard, déjà vérifié, et le rend visible des acheteurs."""
+    transfer = Transfer(listing_id=listing.id)  # naît à l'état DOSSARD_VERIFIE
+    transfer.state = next_state(transfer.state, TransferEvent.METTRE_EN_VENTE)
     session.add(transfer)
-    session.flush()  # attribue transfer.id, dont le lien du message a besoin
-    notify(
-        session,
-        entry.email,
-        f"Un dossard est disponible pour vous — {race.name}",
-        f"Le dossard n°{listing.bib_number} vous est proposé à {euros(listing.price_cents)} €, hors frais de service. "
-        f"Vous avez jusqu'au {local_time(transfer.offer_expires_at)} pour le payer : passé ce délai, "
-        "il sera proposé au coureur suivant.",
-        link=f"/runner/transfers/{transfer.id}",
-    )
-    session.commit()
-    return entry
-
-
-def offer_pending(session: Session, race_id: int, now: datetime | None = None) -> None:
-    """Propose les dossards de cette course qui attendaient un acheteur, du plus ancien au plus récent."""
-    for transfer in _race_transfers(session, race_id, TransferState.EN_VENTE):
-        offer_next(session, transfer, now)
-
-
-def join_waitlist(
-    session: Session, race: Race, first_name: str, last_name: str, email: str, today: date | None = None
-) -> WaitlistEntry:
-    """Inscrit un coureur sur la liste d'attente. Si un dossard attendait preneur, il lui est proposé aussitôt."""
-    check_resale_open(race, rules_for(session, race.id), today or date.today())
-    already = session.exec(
-        select(WaitlistEntry).where(WaitlistEntry.race_id == race.id, WaitlistEntry.email == email)
-    ).first()
-    if already:
-        raise MarketError("Cette adresse est déjà inscrite sur la liste d'attente de cette course.")
-    entry = WaitlistEntry(race_id=race.id, first_name=first_name, last_name=last_name, email=email)
-    session.add(entry)
-    notify(
-        session,
-        email,
-        f"Vous êtes sur la liste d'attente — {race.name}",
-        "Nous vous écrirons dès qu'un dossard vous sera proposé. Vous aurez alors 48 heures pour le payer.",
-        link=f"/runner/races/{race.id}",
-    )
-    session.commit()
-    offer_pending(session, race.id)
-    return entry
-
-
-def position(session: Session, entry: WaitlistEntry) -> int | None:
-    """Le rang du coureur dans la file (1 = le prochain servi), ou None s'il a déjà une offre."""
-    waiting = [candidate.id for candidate in _waiting(session, entry.race_id)]
-    return waiting.index(entry.id) + 1 if entry.id in waiting else None
-
-
-def current_offer(session: Session, entry: WaitlistEntry) -> Transfer | None:
-    """L'offre en attente de paiement faite à ce coureur, s'il y en a une."""
-    statement = select(Transfer).where(Transfer.buyer_id == entry.id, Transfer.state == TransferState.RESERVE)
-    return session.exec(statement).first()
+    return transfer
 
 
 def create_listing(
@@ -186,7 +96,7 @@ def create_listing(
     price_cents: int,
     today: date | None = None,
 ) -> Transfer:
-    """Met un dossard en vente, après contrôle du règlement et du registre, puis le propose au suivant."""
+    """Vérifie le dossard auprès de l'organisateur, puis le met en vente. Sans vérification, rien n'est créé."""
     rules = rules_for(session, race.id)
     check_resale_open(race, rules, today or date.today())
     if price_cents <= 0:
@@ -195,7 +105,8 @@ def create_listing(
     if cap_cents is not None and price_cents > cap_cents:
         raise MarketError(f"Le règlement de cette course plafonne la revente à {euros(cap_cents)} €.")
 
-    # Seul le titulaire du dossard peut le vendre : son nom doit être celui du registre de l'organisateur.
+    # La vérification du dossard : il doit exister dans le registre de l'organisateur, au nom du vendeur.
+    # Le registre est simulé pour l'instant (app/registry_mock).
     registration = get_registration(session, race.id, bib_number)
     if registration is None:
         raise MarketError(f"Aucun dossard n°{bib_number} parmi les inscrits de « {race.name} ».")
@@ -206,7 +117,7 @@ def create_listing(
     in_progress = (
         select(Transfer)
         .join(Listing, Listing.id == Transfer.listing_id)
-        .where(Listing.race_id == race.id, Listing.bib_number == bib_number, col(Transfer.state).not_in(FINISHED))
+        .where(Listing.race_id == race.id, Listing.bib_number == bib_number, col(Transfer.state).not_in(FINAL_STATES))
     )
     if session.exec(in_progress).first():
         raise MarketError(f"Le dossard n°{bib_number} est déjà en vente.")
@@ -214,43 +125,152 @@ def create_listing(
     listing = Listing(race_id=race.id, bib_number=bib_number, seller_email=seller_email, price_cents=price_cents)
     session.add(listing)
     session.flush()  # attribue listing.id
-    transfer = Transfer(listing_id=listing.id)
-    session.add(transfer)
+    transfer = put_on_sale(session, listing)
     notify(
         session,
         seller_email,
-        f"Votre dossard n°{bib_number} est en vente — {race.name}",
-        f"Prix demandé : {euros(price_cents)} €. Il est proposé aux coureurs de la liste d'attente, dans l'ordre "
-        "de leur inscription. Vous serez payé quand l'organisateur aura mis le dossard au nom de l'acheteur.",
+        f"Votre dossard n°{bib_number} est vérifié et en vente — {race.name}",
+        f"Prix demandé : {euros(price_cents)} €. Vous serez payé quand l'organisateur aura mis le dossard "
+        "au nom de l'acheteur.",
         link=f"/runner/listings/{listing.id}",
     )
+    for entry in session.exec(select(WaitlistEntry).where(WaitlistEntry.race_id == race.id)).all():
+        notify(
+            session,
+            entry.email,
+            f"Un dossard est en vente — {race.name}",
+            f"Le dossard n°{bib_number} vient d'être mis en vente à {euros(price_cents)} €. Le premier qui "
+            "l'achète l'emporte.",
+            link=f"/runner/races/{race.id}",
+        )
     session.commit()
-    offer_next(session, transfer)
     return transfer
 
 
-def expire_offers(session: Session, now: datetime | None = None) -> int:
-    """Clôt les offres dont le délai de paiement est dépassé et propose chaque dossard au suivant."""
+# --- Réservation et contrôles de l'acheteur ---
+
+
+def reserve(session: Session, transfer_id: int, now: datetime | None = None) -> Transfer:
+    """Un acheteur a cliqué « Acheter ce dossard » : le dossard lui est réservé le temps de payer."""
+    now = now or utcnow()
+    target = next_state(TransferState.EN_VENTE, TransferEvent.RESERVER)
+    # Une seule requête qui teste et modifie : si deux acheteurs cliquent en même temps, un seul l'emporte.
+    result = session.exec(
+        update(Transfer)
+        .where(col(Transfer.id) == transfer_id, col(Transfer.state) == TransferState.EN_VENTE)
+        .values(state=target, offer_expires_at=now + timedelta(minutes=settings.reservation_minutes))
+    )
+    session.commit()
+    if result.rowcount != 1:
+        raise MarketError("Ce dossard vient d'être réservé par un autre coureur.")
+    transfer = session.get(Transfer, transfer_id)
+    session.refresh(transfer)
+    return transfer
+
+
+def reservation_expired(transfer: Transfer, now: datetime | None = None) -> bool:
+    return transfer.offer_expires_at is not None and (now or utcnow()) > transfer.offer_expires_at
+
+
+def age_on(day: date, birth_date: date) -> int:
+    return day.year - birth_date.year - ((day.month, day.day) < (birth_date.month, birth_date.day))
+
+
+def eligibility_problem(session: Session, race: Race, first_name: str, last_name: str, birth_date: date) -> str | None:
+    """Ce qui empêche cette personne de reprendre un dossard de cette course, ou None si rien ne s'y oppose."""
+    if age_on(race.event_date, birth_date) < race.minimum_age:
+        return f"Il faut avoir {race.minimum_age} ans le jour de la course pour y participer."
+    name = f"{first_name} {last_name}"
+    for registration in list_registrations(session, race.id):
+        if compare_names(f"{registration.first_name} {registration.last_name}", name) is NameMatch.EXACT:
+            return "Vous êtes déjà inscrit à cette course : un coureur ne peut pas y avoir deux dossards."
+    return None
+
+
+def register_buyer(
+    session: Session,
+    transfer: Transfer,
+    *,
+    first_name: str,
+    last_name: str,
+    email: str,
+    birth_date: date,
+    now: datetime | None = None,
+) -> Buyer:
+    """Enregistre l'identité de l'acheteur et fait les contrôles, avant tout paiement.
+
+    S'il est éligible, le transfert passe à ELIGIBLE : il peut payer. Sinon le transfert s'arrête,
+    le dossard repart en vente, et Ineligible porte la raison à lui montrer.
+    """
+    if transfer.state is not TransferState.RESERVE or reservation_expired(transfer, now):
+        raise MarketError("Cette réservation n'est plus valable. Retournez sur la page de la course.")
+    listing = session.get(Listing, transfer.listing_id)
+    race = session.get(Race, listing.race_id)
+    buyer = Buyer(race_id=race.id, first_name=first_name, last_name=last_name, email=email, birth_date=birth_date)
+    session.add(buyer)
+    session.flush()  # attribue buyer.id
+    transfer.buyer_id = buyer.id
+
+    problem = eligibility_problem(session, race, first_name, last_name, birth_date)
+    if problem:
+        transfer.state = next_state(transfer.state, TransferEvent.REFUSER_ACHETEUR)
+        session.add(transfer)
+        put_on_sale(session, listing)
+        session.commit()
+        raise Ineligible(problem)
+    transfer.state = next_state(transfer.state, TransferEvent.VALIDER_ACHETEUR)
+    session.add(transfer)
+    session.commit()
+    return buyer
+
+
+def expire_reservations(session: Session, now: datetime | None = None) -> int:
+    """Clôt les réservations dont le délai est passé sans paiement et remet chaque dossard en vente."""
     now = now or utcnow()
     due = session.exec(
-        select(Transfer).where(Transfer.state == TransferState.RESERVE, col(Transfer.offer_expires_at) < now)
+        select(Transfer).where(col(Transfer.state).in_(HELD), col(Transfer.offer_expires_at) < now)
     ).all()
     for transfer in due:
         listing = session.get(Listing, transfer.listing_id)
         race = session.get(Race, listing.race_id)
-        buyer = session.get(WaitlistEntry, transfer.buyer_id)
         transfer.state = next_state(transfer.state, TransferEvent.EXPIRER)
-        notify(
-            session,
-            buyer.email,
-            f"Votre offre a expiré — {race.name}",
-            f"Le délai pour payer le dossard n°{listing.bib_number} est dépassé : il est proposé au coureur suivant. "
-            "Vous restez sur la liste d'attente.",
-            link=f"/runner/races/{race.id}",
-        )
-        # Une nouvelle tentative pour le même dossard : les identifiants PayPal ne passent pas d'un acheteur à l'autre.
-        fresh = Transfer(listing_id=listing.id)
-        session.add_all([transfer, fresh])
+        session.add(transfer)
+        if transfer.buyer_id:
+            notify(
+                session,
+                session.get(Buyer, transfer.buyer_id).email,
+                f"Votre réservation a expiré — {race.name}",
+                f"Le délai pour payer le dossard n°{listing.bib_number} est dépassé : il est de nouveau en vente. "
+                "Rien n'a été débité.",
+                link=f"/runner/races/{race.id}",
+            )
+        # Un nouveau transfert pour le même dossard : les identifiants PayPal ne passent pas d'un acheteur à l'autre.
+        put_on_sale(session, listing)
         session.commit()
-        offer_next(session, fresh, now)
     return len(due)
+
+
+# --- Liste d'attente : être prévenu quand un dossard est mis en vente ---
+
+
+def join_waitlist(
+    session: Session, race: Race, first_name: str, last_name: str, email: str, today: date | None = None
+) -> WaitlistEntry:
+    """Inscrit un coureur sur la liste d'attente : il sera prévenu de chaque dossard mis en vente."""
+    check_resale_open(race, rules_for(session, race.id), today or date.today())
+    already = session.exec(
+        select(WaitlistEntry).where(WaitlistEntry.race_id == race.id, WaitlistEntry.email == email)
+    ).first()
+    if already:
+        raise MarketError("Cette adresse est déjà inscrite sur la liste d'attente de cette course.")
+    entry = WaitlistEntry(race_id=race.id, first_name=first_name, last_name=last_name, email=email)
+    session.add(entry)
+    notify(
+        session,
+        email,
+        f"Vous êtes sur la liste d'attente — {race.name}",
+        "Nous vous écrirons dès qu'un dossard sera mis en vente. Le premier qui l'achète l'emporte.",
+        link=f"/runner/races/{race.id}",
+    )
+    session.commit()
+    return entry

@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import Listing, RaceRulesRow, Registration, WaitlistEntry
+from app.models import Listing, RaceRulesRow, Registration, Buyer
 from app.transfers.state import TransferState
 from scripts.demo_offer import create_offer
 
@@ -20,9 +20,9 @@ def test_create_offer_reserves_the_first_bib_for_a_buyer(session, race, registra
     transfer = create_offer(session, "vendeur@example.com")
 
     listing = session.get(Listing, transfer.listing_id)
-    assert transfer.state is TransferState.RESERVE
+    assert transfer.state is TransferState.ELIGIBLE
     assert (listing.bib_number, listing.seller_email, listing.price_cents) == (101, "vendeur@example.com", 4500)
-    assert session.get(WaitlistEntry, transfer.buyer_id).first_name == "Marie"
+    assert session.get(Buyer, transfer.buyer_id).first_name == "Marie"
     assert transfer.offer_expires_at is not None
 
 

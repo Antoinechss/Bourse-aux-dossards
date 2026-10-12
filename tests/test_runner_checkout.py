@@ -113,7 +113,7 @@ def test_authorize_before_any_order_is_refused(client, session, transfer, paypal
     response = client.post(url(transfer, "authorize"))
 
     assert response.status_code == 409
-    assert session.get(Transfer, transfer.id).state is TransferState.RESERVE
+    assert session.get(Transfer, transfer.id).state is TransferState.ELIGIBLE
 
 
 def test_paypal_refusal_leaves_the_transfer_untouched(client, session, transfer, paypal):
@@ -126,7 +126,7 @@ def test_paypal_refusal_leaves_the_transfer_untouched(client, session, transfer,
     # L'acheteur lit un message simple, pas le détail technique de PayPal.
     assert "ORDER_NOT_APPROVED" not in response.text
     assert "Rien n'a été débité" in response.json()["detail"]
-    assert session.get(Transfer, transfer.id).state is TransferState.RESERVE
+    assert session.get(Transfer, transfer.id).state is TransferState.ELIGIBLE
     assert ledger.entries(session, transfer.id) == []
 
 
@@ -143,7 +143,7 @@ def test_expired_offer_cannot_be_paid(client, session, transfer, paypal):
 
     page = client.get(url(transfer, "checkout"))
 
-    assert "Cette offre a expiré" in page.text
+    assert "Votre réservation a expiré" in page.text
     assert "<paypal-button" not in page.text
     assert client.post(url(transfer, "order")).status_code == 409
     assert client.post(url(transfer, "authorize")).status_code == 409
@@ -162,12 +162,12 @@ def test_offer_still_open_before_its_deadline(client, session, transfer):
     "state, expected",
     [
         (TransferState.AUTORISE, "Paiement autorisé"),
-        (TransferState.VERIFIE, "Paiement autorisé"),
         (TransferState.NOM_CHANGE, "Paiement autorisé"),
         (TransferState.ENCAISSE, "Paiement encaissé"),
         (TransferState.VERSE, "Paiement encaissé"),
         (TransferState.REFUSE, "vous n'avez pas été débité"),
-        (TransferState.OFFRE_EXPIREE, "Cette offre a expiré"),
+        (TransferState.INELIGIBLE, "aucun paiement n'a été déclenché"),
+        (TransferState.RESERVATION_EXPIREE, "Votre réservation a expiré"),
     ],
 )
 def test_checkout_page_follows_the_transfer_state_and_hides_the_button(client, session, transfer, state, expected):
@@ -179,7 +179,7 @@ def test_checkout_page_follows_the_transfer_state_and_hides_the_button(client, s
     assert "<paypal-button" not in response.text
 
 
-@pytest.mark.parametrize("state", [TransferState.VERIFIE, TransferState.ENCAISSE, TransferState.REFUSE])
+@pytest.mark.parametrize("state", [TransferState.NOM_CHANGE, TransferState.ENCAISSE, TransferState.REFUSE])
 def test_no_new_order_once_the_offer_is_settled(client, session, transfer, paypal, state):
     set_state(session, transfer, state)
 

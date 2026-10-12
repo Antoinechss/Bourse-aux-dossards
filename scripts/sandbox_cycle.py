@@ -20,7 +20,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from app.config import settings
-from app.models import Listing, Race, Transfer, WaitlistEntry
+from app.models import Listing, Race, Transfer, Buyer
 from app.payments import ledger, orders, payouts, service
 from app.payments.client import PayPalError, PayPalUnreachable
 from app.payments.money import format_euros
@@ -33,15 +33,15 @@ CANCEL_URL = "https://example.com/relais/paiement-abandonne"
 
 
 def demo_transfer(session: Session, seller_email: str, organizer_email: str) -> Transfer:
-    """Un dossard à 45 € déjà proposé à une acheteuse de la liste d'attente (état RESERVE)."""
+    """Un dossard à 45 € réservé par une acheteuse dont les contrôles sont passés (état ELIGIBLE)."""
     race = Race(name="Trail des Crêtes de Valombre", event_date=date(2027, 4, 11), organizer_email=organizer_email)
     session.add(race)
     session.commit()
     listing = Listing(race_id=race.id, bib_number=104, seller_email=seller_email, price_cents=4500)
-    buyer = WaitlistEntry(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
+    buyer = Buyer(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
     session.add_all([listing, buyer])
     session.commit()
-    transfer = Transfer(listing_id=listing.id, buyer_id=buyer.id, state=TransferState.RESERVE)
+    transfer = Transfer(listing_id=listing.id, buyer_id=buyer.id, state=TransferState.ELIGIBLE)
     session.add(transfer)
     session.commit()
     return transfer
@@ -146,8 +146,7 @@ def run(refuse: bool, approval_timeout: int) -> None:
             print_ledger(session, transfer)
             return
 
-        print("\n4. Justificatif vérifié, puis nom changé par l'organisateur (simulés ici)")
-        advance(session, transfer, TransferEvent.VERIFIER)
+        print("\n4. Transfert confirmé par l'organisateur : le dossard passe au nom de l'acheteur (simulé ici)")
         advance(session, transfer, TransferEvent.CHANGER_NOM)
 
         print("\n5. Capture : l'acheteur est débité, la plateforme encaisse")

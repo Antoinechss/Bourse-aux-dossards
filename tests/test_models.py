@@ -13,7 +13,7 @@ from app.models import (
     Transfer,
     Verdict,
     Verification,
-    WaitlistEntry,
+    Buyer,
 )
 from app.transfers.state import TransferState
 
@@ -51,7 +51,7 @@ def test_a_race_has_only_one_set_of_rules(session, race):
         session.commit()
 
 
-def test_new_transfer_starts_en_vente_without_buyer(session, race):
+def test_new_transfer_starts_with_a_verified_bib_and_no_buyer(session, race):
     listing = Listing(race_id=race.id, bib_number=42, seller_email="vendeur@example.com", price_cents=4500)
     session.add(listing)
     session.commit()
@@ -61,14 +61,14 @@ def test_new_transfer_starts_en_vente_without_buyer(session, race):
     session.commit()
     session.refresh(transfer)
 
-    assert transfer.state is TransferState.EN_VENTE
+    assert transfer.state is TransferState.DOSSARD_VERIFIE
     assert transfer.buyer_id is None
     assert transfer.created_at is not None
 
 
 def test_full_transfer_round_trips_through_the_database(session, race):
     listing = Listing(race_id=race.id, bib_number=42, seller_email="vendeur@example.com", price_cents=4500)
-    buyer = WaitlistEntry(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
+    buyer = Buyer(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
     session.add_all([listing, buyer])
     session.commit()
 

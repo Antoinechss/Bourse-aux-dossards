@@ -13,7 +13,7 @@ from app.ai.client import AIError
 from app.ai.rules_reader import read_rules
 from app.ai.verifier import read_proof
 from app.config import settings
-from app.models import RaceRulesRow, Transfer, WaitlistEntry
+from app.models import RaceRulesRow, Transfer, Buyer
 from app.templating import templates
 from app.transfers.state import TransferState
 
@@ -79,7 +79,7 @@ def test_organizer_can_read_a_seed_reglement_without_claude(client, session, rac
 
 def test_buyer_can_be_verified_with_a_seed_proof_without_claude(client, session, race, fake_ai):
     transfer = reserved_transfer(session, race)
-    buyer = session.get(WaitlistEntry, transfer.buyer_id)
+    buyer = session.get(Buyer, transfer.buyer_id)
     buyer.first_name, buyer.last_name = "Léa", "Moreau"
     transfer.state = TransferState.AUTORISE
     session.add_all([buyer, transfer])
@@ -91,4 +91,5 @@ def test_buyer_can_be_verified_with_a_seed_proof_without_claude(client, session,
     )
 
     assert response.status_code == 204
-    assert session.get(Transfer, transfer.id).state is TransferState.VERIFIE
+    assert "Justificatif fourni." in client.get(f"/runner/transfers/{transfer.id}").text
+    assert session.get(Transfer, transfer.id).state is TransferState.AUTORISE  # le justificatif ne touche pas au paiement

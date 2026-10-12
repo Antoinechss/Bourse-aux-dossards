@@ -40,6 +40,7 @@ class Race(SQLModel, table=True):
     name: str
     event_date: date
     distance: str = ""  # telle qu'on l'imprime sur le dossard : "10 km", "21,1 km"
+    minimum_age: int = 0  # âge requis le jour de la course ; 0 s'il n'y en a pas
     organizer_email: str  # destinataire du Payout de la part organisateur
     # Commission en points de base (500 = 5 %), payée par l'acheteur en plus du prix.
     platform_fee_bps: int = 500
@@ -123,7 +124,7 @@ class Listing(SQLModel, table=True):
 
 
 class WaitlistEntry(SQLModel, table=True):
-    """Un acheteur en liste d'attente pour une course. L'ordre est celui de created_at."""
+    """Un coureur qui veut être prévenu quand un dossard est mis en vente pour une course."""
 
     id: int | None = Field(default=None, primary_key=True)
     race_id: int = Field(foreign_key="race.id", index=True)
@@ -133,19 +134,31 @@ class WaitlistEntry(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
-class Transfer(SQLModel, table=True):
-    """Une tentative de transfert d'une annonce vers un acheteur.
+class Buyer(SQLModel, table=True):
+    """La personne qui achète un dossard. Son identité sert aux contrôles faits avant tout paiement."""
 
-    Si elle échoue (REFUSE, OFFRE_EXPIREE), on crée un nouveau Transfer pour le suivant
-    de la liste : les identifiants PayPal d'un acheteur ne servent ainsi jamais à un autre.
+    id: int | None = Field(default=None, primary_key=True)
+    race_id: int = Field(foreign_key="race.id", index=True)
+    first_name: str
+    last_name: str
+    email: str
+    birth_date: date | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Transfer(SQLModel, table=True):
+    """Une tentative de vente d'une annonce à un acheteur.
+
+    Si elle s'arrête sans vente (réservation expirée, acheteur inéligible), le dossard repart en vente
+    dans un nouveau Transfer : les identifiants PayPal d'un acheteur ne servent ainsi jamais à un autre.
     """
 
     id: int | None = Field(default=None, primary_key=True)
     listing_id: int = Field(foreign_key="listing.id", index=True)
-    state: TransferState = TransferState.EN_VENTE
-    # L'entrée de liste d'attente à qui le dossard est proposé ; None tant que EN_VENTE.
-    buyer_id: int | None = Field(default=None, foreign_key="waitlistentry.id")
-    offer_expires_at: datetime | None = None
+    state: TransferState = TransferState.DOSSARD_VERIFIE
+    # L'acheteur qui a réservé le dossard ; None tant qu'il n'a pas donné son identité.
+    buyer_id: int | None = Field(default=None, foreign_key="buyer.id")
+    offer_expires_at: datetime | None = None  # fin de la réservation : passé ce moment, le dossard repart en vente
     paypal_order_id: str | None = None
     paypal_authorization_id: str | None = None
     authorized_at: datetime | None = None

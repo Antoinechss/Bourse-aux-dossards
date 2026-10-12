@@ -1,4 +1,4 @@
-"""Tests de la suite d'un transfert vérifié (app/transfers/flow.py) : PayPal est remplacé par un faux."""
+"""Tests de la suite d'un paiement autorisé (app/transfers/flow.py) : PayPal est remplacé par un faux."""
 
 from datetime import timedelta
 
@@ -23,12 +23,12 @@ def paypal(monkeypatch):
 
 @pytest.fixture
 def transfer(session, race, paypal):
-    """Marie Martin a payé le dossard 42 de Jean Dupont, et son justificatif est vérifié."""
+    """Marie Martin a payé le dossard 42 de Jean Dupont : le paiement est autorisé, rien n'est encore débité."""
     session.add(Registration(race_id=race.id, bib_number=42, first_name="Jean", last_name="Dupont"))
     transfer = reserved_transfer(session, race)
     service.create_order(session, transfer)
     service.authorize(session, transfer)
-    set_state(session, transfer, TransferState.VERIFIE)
+    set_state(session, transfer, TransferState.AUTORISE)
     return transfer
 
 
@@ -86,14 +86,15 @@ def test_advance_twice_does_not_pay_twice(session, transfer, paypal):
     assert paypal.operations().count("send_payouts") == 1
 
 
-def test_advance_leaves_an_unverified_transfer_alone(session, transfer, paypal):
-    set_state(session, transfer, TransferState.AUTORISE)
+def test_advance_leaves_an_unpaid_transfer_alone(session, race, transfer, paypal):
+    set_state(session, transfer, TransferState.ELIGIBLE)
     calls = len(paypal.calls)
 
     flow.advance(session, transfer)
 
-    assert transfer.state is TransferState.AUTORISE
+    assert transfer.state is TransferState.ELIGIBLE
     assert len(paypal.calls) == calls
+    assert get_registration(session, race.id, 42).first_name == "Jean"  # le dossard n'a pas changé de nom
 
 
 def test_check_payout_marks_the_transfer_paid_once_paypal_confirms(session, transfer, paypal):
@@ -121,21 +122,21 @@ def test_check_payout_waits_until_every_payout_has_arrived(session, transfer, pa
     assert transfer.state is TransferState.ENCAISSE
 
 
-def test_housekeeping_takes_a_verified_transfer_to_the_end(session, transfer, paypal):
+def test_housekeeping_takes_a_paid_transfer_to_the_end(session, transfer, paypal):
     flow.housekeeping(session)
 
     assert session.get(Transfer, transfer.id).state is TransferState.VERSE
 
 
-def test_housekeeping_expires_offers(session, race, paypal):
-    offer = reserved_transfer(session, race)
-    offer.offer_expires_at = utcnow() - timedelta(minutes=1)
-    session.add(offer)
+def test_housekeeping_expires_reservations(session, race, paypal):
+    reservation = reserved_transfer(session, race)
+    reservation.offer_expires_at = utcnow() - timedelta(minutes=1)
+    session.add(reservation)
     session.commit()
 
     flow.housekeeping(session)
 
-    assert session.get(Transfer, offer.id).state is TransferState.OFFRE_EXPIREE
+    assert session.get(Transfer, reservation.id).state is TransferState.RESERVATION_EXPIREE
 
 
 def test_housekeeping_survives_a_failing_transfer(session, transfer, paypal):

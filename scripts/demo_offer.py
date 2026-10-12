@@ -14,7 +14,7 @@ from datetime import timedelta
 from sqlmodel import Session, select
 
 from app.db import create_db_and_tables, engine
-from app.models import Listing, Race, RaceRulesRow, Registration, Transfer, WaitlistEntry, utcnow
+from app.models import Listing, Race, RaceRulesRow, Registration, Transfer, Buyer, utcnow
 from app.transfers.state import TransferState
 
 PRICE_CENTS = 4500
@@ -42,13 +42,13 @@ def create_offer(session: Session, seller_email: str) -> Transfer:
         seller_email=seller_email,
         price_cents=min(PRICE_CENTS, cap_cents) if cap_cents else PRICE_CENTS,
     )
-    buyer = WaitlistEntry(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
+    buyer = Buyer(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
     session.add_all([listing, buyer])
     session.commit()
     transfer = Transfer(
         listing_id=listing.id,
         buyer_id=buyer.id,
-        state=TransferState.RESERVE,
+        state=TransferState.ELIGIBLE,  # réservé, contrôles passés : il ne reste qu'à payer
         offer_expires_at=utcnow() + timedelta(hours=48),
     )
     session.add(transfer)

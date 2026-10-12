@@ -19,6 +19,7 @@ class Settings:
     anthropic_api_key: str
     ai_mode: str
     demo_organizer_email: str
+    reservation_minutes: int
 
 
 def load_settings() -> Settings:
@@ -33,6 +34,8 @@ def load_settings() -> Settings:
         # "real" appelle Claude ; "fake" renvoie des réponses préenregistrées pour les fichiers de seed/.
         ai_mode=os.getenv("AI_MODE", "real"),
         demo_organizer_email=os.getenv("DEMO_ORGANIZER_EMAIL", ""),
+        # Temps laissé à l'acheteur pour payer le dossard qu'il a réservé.
+        reservation_minutes=int(os.getenv("RESERVATION_MINUTES", "15")),
     )
 
 

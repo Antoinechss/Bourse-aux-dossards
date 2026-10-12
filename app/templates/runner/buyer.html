@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/bib.html" import bib %}
+
+{% block title %}Dossard n°{{ listing.bib_number }} — {{ race.name }}{% endblock %}
+
+{% block main %}
+<main>
+  <section class="band hero">
+    <div class="container hero__split">
+      <div class="hero__intro">
+        <p class="eyebrow">{{ race.name }} · {{ race.event_date | long_date }}</p>
+        <h1>Dossard n°{{ listing.bib_number }}</h1>
+        <p class="lead">
+          Ce dossard vous est réservé{% if transfer.offer_expires_at %} jusqu'à {{ transfer.offer_expires_at | clock }}{% endif %}.
+          Passé ce délai, il repart en vente.
+        </p>
+      </div>
+      <div class="hero__bib">{{ bib(listing.bib_number, race.name, race.distance, name="Réservé") }}</div>
+    </div>
+  </section>
+
+  <section class="container section split">
+    <div class="stack stack--loose">
+      <div class="stack">
+        <h2>Votre identité</h2>
+        <p>
+          Le dossard sera mis à ce nom. Nous vérifions avant tout paiement que vous avez l'âge requis
+          {% if race.minimum_age %}({{ race.minimum_age }} ans le jour de la course) {% endif %}et que
+          vous n'êtes pas déjà inscrit.
+        </p>
+      </div>
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <form method="post" action="/runner/transfers/{{ transfer.id }}/buyer">
+        <div class="fields fields--pair">
+          <label>Prénom <input name="first_name" value="{{ values.first_name }}" autocomplete="given-name" required></label>
+          <label>Nom <input name="last_name" value="{{ values.last_name }}" autocomplete="family-name" required></label>
+        </div>
+        <label>Email <input type="email" name="email" value="{{ values.email }}" autocomplete="email" required></label>
+        <label>Date de naissance <input type="date" name="birth_date" value="{{ values.birth_date }}" autocomplete="bday" required></label>
+        <button type="submit">Continuer vers le paiement</button>
+      </form>
+    </div>
+
+    <aside class="stack">
+      <h2>Récapitulatif</h2>
+      <dl class="specs">
+        <div><dt>Prix du dossard</dt><dd>{{ amounts.price_cents | euros }} €</dd></div>
+        <div><dt>Frais de service</dt><dd>{{ amounts.service_fee_cents | euros }} €</dd></div>
+        <div class="specs__total"><dt>Total à payer</dt><dd>{{ amounts.total_cents | euros }} €</dd></div>
+      </dl>
+      <p class="muted">Rien n'est débité à cette étape.</p>
+    </aside>
+  </section>
+</main>
+{% endblock %}

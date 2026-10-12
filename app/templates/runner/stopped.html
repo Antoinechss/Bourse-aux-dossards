@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Relais{% endblock %}
+
+{# Un achat qui s'arrête avant tout paiement : la raison, et le chemin pour repartir. #}
+{% block main %}
+<main>
+  <section class="band hero">
+    <div class="container hero__intro">
+      <p class="eyebrow">Dossard n°{{ listing.bib_number }} · {{ race.name }}</p>
+      <h1>{{ title }}</h1>
+      <p class="lead">{{ text }}</p>
+    </div>
+  </section>
+  <section class="container section">
+    <p><a class="button" href="/runner/races/{{ race.id }}">Retour à la course</a></p>
+  </section>
+</main>
+{% endblock %}

@@ -2,28 +2,47 @@
 
 {% block title %}Relais — Bourse aux dossards{% endblock %}
 
-{% block content %}
-<h1>La bourse aux dossards officielle</h1>
-<p>
-  Vous ne pouvez plus courir ? Revendez votre dossard en toute sécurité.
-  L'acheteur est vérifié, et l'argent reste bloqué jusqu'à ce que
-  l'organisateur ait changé le nom sur le dossard.
-</p>
+{% block main %}
+<main>
+  <section class="band hero">
+    <div class="container hero__intro">
+      <p class="eyebrow">Revente de dossards, avec l'accord de l'organisateur</p>
+      <h1>La bourse aux dossards officielle</h1>
+      <p class="lead">
+        Vous ne pouvez plus courir ? Votre dossard repart avec un coureur vérifié, et l'argent reste
+        bloqué jusqu'à ce que l'organisateur ait changé le nom.
+      </p>
+    </div>
+  </section>
 
-<h2>Les courses</h2>
-{% if races %}
-<table>
-  <tr><th>Course</th><th>Date</th><th></th><th></th></tr>
-  {% for race in races %}
-  <tr>
-    <td>{{ race.name }}</td>
-    <td>{{ race.event_date.strftime("%d/%m/%Y") }}</td>
-    <td><a href="/runner/races/{{ race.id }}">Chercher un dossard</a></td>
-    <td><a href="/runner/races/{{ race.id }}/sell">Vendre mon dossard</a></td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>Aucune course pour l'instant.</p>
-{% endif %}
+  <section class="container section stack stack--loose">
+    <h2>Courses</h2>
+    {% if races %}
+    <ul class="race-list">
+      {% for race in races %}
+      {% set on_sale = markets[race.id].free + markets[race.id].reserved %}
+      <li class="race-row">
+        <p class="race-row__date">
+          <span class="race-row__day">{{ race.event_date.day }}</span>
+          <span class="eyebrow">{{ race.event_date | month_year }}</span>
+        </p>
+        <div class="race-row__main">
+          <h3><a href="/runner/races/{{ race.id }}">{{ race.name }}</a></h3>
+          <p class="muted">
+            {% if race.distance %}{{ race.distance }} · {% endif %}
+            {% if on_sale %}{{ on_sale }} dossard{{ "s" if on_sale > 1 }} en vente{% else %}Aucun dossard en vente{% endif %}
+          </p>
+        </div>
+        <p class="race-row__actions">
+          <a class="race-row__primary" href="/runner/races/{{ race.id }}">Chercher un dossard</a>
+          <a href="/runner/races/{{ race.id }}/sell">Vendre mon dossard</a>
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Aucune course pour l'instant.</p>
+    {% endif %}
+  </section>
+</main>
 {% endblock %}

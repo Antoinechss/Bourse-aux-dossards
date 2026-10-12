@@ -1,90 +1,138 @@
 {% extends "base.html" %}
+{% from "components/bib.html" import bib %}
 
 {% block title %}Suivi — dossard n°{{ listing.bib_number }}{% endblock %}
 
-{% block content %}
-<h1>Dossard n°{{ listing.bib_number }} — {{ race.name }}</h1>
-<p>
-  {{ "Suivi de votre achat" if viewer == "buyer" else "Suivi de votre vente" }},
-  course du {{ race.event_date.strftime("%d/%m/%Y") }}.
-</p>
-
-{% if poll_url %}
-{# Toutes les 4 secondes, HTMX demande au serveur si l'état a changé ; si oui, il fait recharger la page. #}
-<div hx-get="{{ poll_url }}" hx-trigger="every 4s" hx-swap="none"></div>
-{% endif %}
-
-<ol class="steps">
-  {% for state, label in steps %}
-  <li class="{{ 'done' if reached is not none and loop.index0 < reached }} {{ 'current' if loop.index0 == reached }}">{{ label }}</li>
-  {% endfor %}
-</ol>
-
+{% block main %}
 {% set price = listing.price_cents | euros %}
 {% set state = transfer.state.value %}
+<main>
+  <section class="band hero">
+    <div class="container hero__split">
+      <div class="hero__intro">
+        <p class="eyebrow">{{ "Suivi de votre achat" if viewer == "buyer" else "Suivi de votre vente" }}</p>
+        <h1>Dossard n°{{ listing.bib_number }}</h1>
+        <p class="lead">{{ race.name }}, {{ race.event_date | long_date }}.</p>
+      </div>
+      <div class="hero__bib">
+        {{ bib(listing.bib_number, race.name, race.distance, name=band, done=transferred, reveal=transferred and viewer == "buyer") }}
+      </div>
+    </div>
+  </section>
 
-{% if viewer == "buyer" %}
-  {% if status == "expired" %}
-  <p class="error">Cette offre a expiré : le dossard a été proposé au coureur suivant. Vous restez sur la liste d'attente.</p>
-  {% elif state == "RESERVE" %}
-  <p>
-    Bonjour {{ buyer.first_name }}, ce dossard vous est proposé à {{ price }} €, hors frais de service.
-    {% if transfer.offer_expires_at %}Vous avez jusqu'au {{ transfer.offer_expires_at | local_time }} pour le payer.{% endif %}
-  </p>
-  <p><a class="button" href="/runner/transfers/{{ transfer.id }}/checkout">Payer le dossard</a></p>
-  {% elif state == "AUTORISE" %}
-  <p class="notice">Paiement autorisé : la somme est bloquée, vous n'êtes pas encore débité.</p>
-  {% if verification %}
-  <p class="error">
-    {{ verification.explanation }} L'organisateur va trancher ; vous pouvez aussi déposer un autre justificatif.
-  </p>
-  {% else %}
-  <p>
-    Dernière étape pour vous : déposez votre licence FFA ou votre PPS, à votre nom et valide le jour de la course.
-  </p>
+  {% if poll_url %}
+  {# Toutes les 4 secondes, HTMX demande au serveur si l'état a changé ; si oui, il fait recharger la page. #}
+  <div hx-get="{{ poll_url }}" hx-trigger="every 4s" hx-swap="none"></div>
   {% endif %}
-  <form hx-post="/runner/transfers/{{ transfer.id }}/proof" hx-encoding="multipart/form-data"
-        hx-target="#proof-result" hx-disabled-elt="find button">
-    <input type="file" name="justificatif" accept="application/pdf,image/jpeg,image/png,image/webp" required>
-    <button type="submit">Envoyer le justificatif</button>
-    <span class="htmx-indicator">Analyse en cours, une dizaine de secondes…</span>
-  </form>
-  <div id="proof-result" role="status"></div>
-  <p class="muted">Le fichier est supprimé dès l'analyse terminée : seul son résultat est conservé.</p>
-  {% elif state == "VERIFIE" %}
-  <p class="notice">Justificatif validé. L'organisateur met le dossard à votre nom.</p>
-  {% elif state == "NOM_CHANGE" %}
-  <p class="notice">Le dossard est à votre nom. Votre paiement est en cours d'encaissement.</p>
-  {% elif state in ("ENCAISSE", "VERSE") %}
-  <p class="notice">Paiement encaissé : le dossard est à votre nom. Bonne course !</p>
-  {% elif state == "REFUSE" %}
-  <p class="error">Le transfert a été refusé. L'autorisation de paiement est annulée : vous n'avez pas été débité.</p>
-  {% endif %}
-{% else %}
-  {% if state == "EN_VENTE" %}
-  <p>Votre dossard est en vente à {{ price }} €. Il sera proposé au prochain inscrit sur la liste d'attente.</p>
-  {% elif state == "RESERVE" %}
-  <p>
-    Votre dossard est proposé à un coureur{% if transfer.offer_expires_at %}, qui a jusqu'au
-    {{ transfer.offer_expires_at | local_time }} pour payer{% endif %}.
-  </p>
-  {% elif state == "OFFRE_EXPIREE" %}
-  <p>Le coureur n'a pas payé à temps : votre dossard va être proposé au suivant.</p>
-  {% elif state == "AUTORISE" %}
-  <p class="notice">Un acheteur a payé : la somme est bloquée. Son justificatif est en cours de vérification.</p>
-  {% elif state == "VERIFIE" %}
-  <p class="notice">L'acheteur est vérifié. L'organisateur met le dossard à son nom.</p>
-  {% elif state == "NOM_CHANGE" %}
-  <p class="notice">Le dossard est au nom de l'acheteur. Son paiement est en cours d'encaissement.</p>
-  {% elif state == "ENCAISSE" %}
-  <p class="notice">Le paiement est encaissé. Votre versement de {{ price }} € est en route vers votre compte PayPal.</p>
-  {% elif state == "VERSE" %}
-  <p class="notice">Vous avez été payé : {{ price }} € ont été versés sur votre compte PayPal.</p>
-  {% elif state == "REFUSE" %}
-  <p class="error">
-    Le transfert a été refusé : l'acheteur n'a pas été débité.
-    <a href="/runner/races/{{ race.id }}/sell">Remettre mon dossard en vente</a>
-  </p>
-  {% endif %}
-{% endif %}
+
+  <section class="container section split">
+    <div class="stack stack--loose">
+      <div class="stack">
+      {% if viewer == "buyer" %}
+        {% if status == "expired" %}
+        <h2>Réservation expirée</h2>
+        <p class="error">Votre réservation a expiré : le dossard est de nouveau en vente. Rien n'a été débité.</p>
+        <p><a class="button button--secondary" href="/runner/races/{{ race.id }}">Retour à la course</a></p>
+        {% elif state == "INELIGIBLE" %}
+        <h2>Achat impossible</h2>
+        <p class="error">Vous ne pouvez pas reprendre ce dossard : il est de nouveau en vente et aucun paiement n'a été déclenché.</p>
+        {% elif state == "ELIGIBLE" %}
+        <h2>Il ne reste qu'à payer</h2>
+        <p>
+          Bonjour {{ buyer.first_name }}, vos contrôles sont passés.
+          {% if transfer.offer_expires_at %}Ce dossard vous est réservé jusqu'à {{ transfer.offer_expires_at | clock }}.{% endif %}
+        </p>
+        <p><a class="button" href="/runner/transfers/{{ transfer.id }}/checkout">Payer le dossard</a></p>
+        {% elif state == "AUTORISE" %}
+        <h2>Paiement autorisé</h2>
+        <p class="notice">
+          Paiement autorisé : la somme est bloquée, vous n'êtes pas encore débité. L'organisateur confirme le transfert.
+        </p>
+        {% elif state == "NOM_CHANGE" %}
+        <h2>Ce dossard est le vôtre</h2>
+        <p class="notice">Le dossard est à votre nom. Votre paiement est en cours d'encaissement.</p>
+        {% elif state in ("ENCAISSE", "VERSE") %}
+        <h2>Ce dossard est le vôtre</h2>
+        <p class="notice">Paiement encaissé : le dossard est à votre nom. Bonne course !</p>
+        {% elif state == "REFUSE" %}
+        <h2>Transfert refusé</h2>
+        <p class="error">
+          L'organisateur n'a pas confirmé le transfert. L'autorisation de paiement est annulée : vous n'avez pas été débité.
+        </p>
+        {% endif %}
+      {% else %}
+        {% if state in ("DOSSARD_VERIFIE", "EN_VENTE") %}
+        <h2>En vente</h2>
+        <p>Votre dossard est vérifié et en vente à {{ price }} €.</p>
+        {% elif state in ("RESERVE", "ELIGIBLE") %}
+        <h2>Réservé par un acheteur</h2>
+        <p>
+          Un coureur a réservé votre dossard{% if transfer.offer_expires_at %}. Il a jusqu'à
+          {{ transfer.offer_expires_at | clock }} pour payer ; sinon le dossard repart en vente{% endif %}.
+        </p>
+        {% elif state in ("RESERVATION_EXPIREE", "INELIGIBLE") %}
+        <p>L'achat ne s'est pas fait : votre dossard repart en vente.</p>
+        {% elif state == "AUTORISE" %}
+        <h2>Un acheteur a payé</h2>
+        <p class="notice">Un acheteur a payé : la somme est bloquée. L'organisateur confirme le transfert.</p>
+        {% elif state == "NOM_CHANGE" %}
+        <h2>Dossard transféré</h2>
+        <p class="notice">Le dossard est au nom de l'acheteur. Son paiement est en cours d'encaissement.</p>
+        {% elif state == "ENCAISSE" %}
+        <h2>Dossard transféré</h2>
+        <p class="notice">Le paiement est encaissé. Votre versement de {{ price }} € est en route vers votre compte PayPal.</p>
+        {% elif state == "VERSE" %}
+        <h2>Vous avez été payé</h2>
+        <p class="notice">Vous avez été payé : {{ price }} € ont été versés sur votre compte PayPal.</p>
+        {% elif state == "REFUSE" %}
+        <h2>Transfert refusé</h2>
+        <p class="error">L'organisateur n'a pas confirmé le transfert : l'acheteur n'a pas été débité.</p>
+        <p><a class="button button--secondary" href="/runner/races/{{ race.id }}/sell">Remettre mon dossard en vente</a></p>
+        {% endif %}
+      {% endif %}
+      </div>
+
+      {# Le justificatif ne fait pas partie du paiement : il se fournit après l'achat, avant le retrait du dossard. #}
+      {% if viewer == "buyer" and purchased %}
+      <div class="stack" id="justificatif">
+        <h2>Votre justificatif</h2>
+        {% if proof.value == "FOURNI" %}
+        <p class="notice"><strong>Justificatif fourni.</strong> Vous n'avez plus rien à apporter avant le retrait du dossard.</p>
+        {% else %}
+          {% if proof.value == "A_VERIFIER" %}
+          <p class="error">{{ verification.explanation }} L'organisateur va trancher ; vous pouvez aussi en déposer un autre.</p>
+          {% elif verification %}
+          <p class="error">L'organisateur n'a pas accepté votre justificatif. Déposez-en un autre avant le retrait du dossard.</p>
+          {% else %}
+          <p>
+            <strong>À fournir avant le retrait du dossard</strong>, comme pour une inscription : votre licence FFA
+            ou votre PPS, à votre nom et valide le jour de la course. Votre achat n'en dépend pas.
+          </p>
+          {% endif %}
+        <form hx-post="/runner/transfers/{{ transfer.id }}/proof" hx-encoding="multipart/form-data"
+              hx-target="#proof-result" hx-disabled-elt="find button">
+          <label>
+            Licence FFA ou PPS, en image ou en PDF
+            <input type="file" name="justificatif" accept="application/pdf,image/jpeg,image/png,image/webp" required>
+          </label>
+          <button type="submit" class="secondary">Envoyer le justificatif</button>
+          <span class="htmx-indicator muted">Analyse en cours, une dizaine de secondes…</span>
+        </form>
+        <div id="proof-result" role="status"></div>
+        <p class="muted">Le fichier est supprimé dès l'analyse terminée : seul son résultat est conservé.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="stack">
+      <h2 class="eyebrow">Étapes du transfert</h2>
+      <ol class="steps">
+        {% for step, label in steps %}
+        <li class="{{ 'done' if reached is not none and loop.index0 < reached }} {{ 'current' if loop.index0 == reached }}">{{ label }}</li>
+        {% endfor %}
+      </ol>
+    </aside>
+  </section>
+</main>
 {% endblock %}

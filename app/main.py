@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 
 from app.db import SessionDep, create_db_and_tables, engine
+from app.marketplace import service as market
 from app.models import Race
 from app.registry_mock.router import router as registry_router
 from app.routers.inbox import router as inbox_router
@@ -68,4 +69,5 @@ def health() -> dict:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, session: SessionDep):
     races = session.exec(select(Race).order_by(Race.event_date)).all()
-    return templates.TemplateResponse(request, "index.html", {"races": races})
+    markets = {race.id: market.race_market(session, race.id) for race in races}
+    return templates.TemplateResponse(request, "index.html", {"races": races, "markets": markets})

@@ -1,8 +1,9 @@
 {# Le dossard : l'objet que l'on achète.
-   name  : le texte du bandeau, le titulaire une fois le dossard transféré.
-   done  : vrai quand le dossard est vérifié ou transféré ; le bandeau passe alors à l'accent. #}
-{% macro bib(number, race, distance="", name="En vente", done=false) %}
-<div class="bib{% if done %} bib--done{% endif %}" style="--digits: {{ number | string | length }}">
+   name   : le texte du bandeau, le titulaire une fois le dossard transféré.
+   done   : vrai quand le dossard est transféré ; le bandeau passe alors à l'accent.
+   reveal : joue l'animation du changement de nom, à la confirmation. #}
+{% macro bib(number, race, distance="", name="En vente", done=false, reveal=false) %}
+<div class="bib{% if done %} bib--done{% endif %}{% if reveal %} bib--reveal{% endif %}" style="--digits: {{ number | string | length }}">
   <span class="bib__pin" aria-hidden="true"></span>
   <span class="bib__pin" aria-hidden="true"></span>
   <span class="bib__pin" aria-hidden="true"></span>
@@ -12,6 +13,6 @@
     {% if distance %}<span class="bib__distance">{{ distance }}</span>{% endif %}
   </div>
   <div class="bib__number">{{ number }}</div>
-  <div class="bib__name">{{ name }}</div>
+  <div class="bib__name"><span class="bib__name-text">{{ name }}</span></div>
 </div>
 {% endmacro %}

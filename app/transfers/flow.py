@@ -1,8 +1,11 @@
-"""Suite d'un transfert vérifié : changement de nom, encaissement, versement.
+"""Suite d'un paiement autorisé : confirmation du transfert par l'organisateur, encaissement, versement.
 
-Les pages enregistrent des décisions (payer, déposer un justificatif). Les étapes d'argent qui en
-découlent sont exécutées ici, par le ménage périodique (housekeeping) ou à l'arrivée d'un webhook
-PayPal, et reprises au passage suivant si PayPal a échoué en route.
+Les pages enregistrent des décisions (réserver, payer). Les étapes qui en découlent sont exécutées ici,
+par le ménage périodique (housekeeping) ou à l'arrivée d'un webhook PayPal, et reprises au passage
+suivant si PayPal a échoué en route.
+
+L'ordre est une règle d'argent : on n'encaisse qu'une fois le dossard au nom de l'acheteur, et un
+transfert refusé par l'organisateur annule l'autorisation sans jamais débiter.
 """
 
 import logging
@@ -12,7 +15,7 @@ from datetime import datetime
 from sqlmodel import Session, col, select
 
 from app.marketplace import service as market
-from app.models import LedgerKind, Listing, Race, Transfer, WaitlistEntry
+from app.models import Buyer, LedgerKind, Listing, Race, Transfer
 from app.notifications import notify
 from app.payments import ledger, payouts, service
 from app.registry_mock.registry import change_name
@@ -26,7 +29,7 @@ logger = logging.getLogger(__name__)
 LOCK = threading.Lock()
 
 # États dans lesquels il reste une étape automatique à faire.
-TO_ADVANCE = (TransferState.VERIFIE, TransferState.NOM_CHANGE, TransferState.ENCAISSE)
+TO_ADVANCE = (TransferState.AUTORISE, TransferState.NOM_CHANGE, TransferState.ENCAISSE)
 
 
 def _move(session: Session, transfer: Transfer, event: TransferEvent) -> None:
@@ -35,8 +38,32 @@ def _move(session: Session, transfer: Transfer, event: TransferEvent) -> None:
     session.commit()
 
 
+def refuse_transfer(session: Session, transfer: Transfer) -> None:
+    """L'organisateur n'a pas confirmé le transfert : l'autorisation est annulée, l'acheteur n'est jamais débité."""
+    listing = session.get(Listing, transfer.listing_id)
+    race = session.get(Race, listing.race_id)
+    # L'argent d'abord : le transfert n'est déclaré refusé qu'une fois les fonds libérés.
+    service.void(session, transfer)
+    notify(
+        session,
+        session.get(Buyer, transfer.buyer_id).email,
+        f"Transfert refusé : vous n'êtes pas débité — {race.name}",
+        f"L'organisateur n'a pas pu mettre le dossard n°{listing.bib_number} à votre nom. L'autorisation de "
+        "paiement est annulée : rien n'a été prélevé.",
+        link=f"/runner/transfers/{transfer.id}",
+    )
+    notify(
+        session,
+        listing.seller_email,
+        f"Transfert refusé — dossard n°{listing.bib_number}",
+        "L'organisateur n'a pas confirmé le transfert de votre dossard. L'acheteur n'a pas été débité.",
+        link=f"/runner/listings/{listing.id}",
+    )
+    _move(session, transfer, TransferEvent.REFUSER)
+
+
 def advance(session: Session, transfer: Transfer) -> None:
-    """Fait avancer un transfert vérifié aussi loin que possible. Ne fait rien dans les autres états.
+    """Fait avancer un transfert payé aussi loin que possible. Ne fait rien dans les autres états.
 
     Chaque étape est enregistrée avant la suivante : si PayPal échoue en route, un nouvel appel
     reprend là où le transfert s'est arrêté, sans rien refaire.
@@ -45,12 +72,14 @@ def advance(session: Session, transfer: Transfer) -> None:
         return
     listing = session.get(Listing, transfer.listing_id)
     race = session.get(Race, listing.race_id)
-    buyer = session.get(WaitlistEntry, transfer.buyer_id)
+    buyer = session.get(Buyer, transfer.buyer_id)
 
-    if transfer.state is TransferState.VERIFIE:
-        # Le registre est celui de l'organisateur : c'est ce changement de nom qui débloque l'argent.
+    if transfer.state is TransferState.AUTORISE:
+        # L'organisateur confirme le transfert en mettant le dossard au nom de l'acheteur.
+        # Son registre est simulé pour l'instant ; s'il ne connaît plus ce dossard, le transfert est refusé.
         if change_name(session, race.id, listing.bib_number, buyer.first_name, buyer.last_name) is None:
-            raise LookupError(f"Dossard n°{listing.bib_number} introuvable dans le registre de « {race.name} »")
+            refuse_transfer(session, transfer)
+            return
         _move(session, transfer, TransferEvent.CHANGER_NOM)
 
     if transfer.state is TransferState.NOM_CHANGE:
@@ -59,7 +88,8 @@ def advance(session: Session, transfer: Transfer) -> None:
             session,
             buyer.email,
             f"Le dossard n°{listing.bib_number} est à votre nom — {race.name}",
-            f"Votre paiement de {euros(captured.amount_cents)} € a été encaissé. Bonne course !",
+            f"Votre paiement de {euros(captured.amount_cents)} € a été encaissé. Il vous reste à fournir votre "
+            "licence FFA ou votre PPS avant le retrait du dossard.",
             link=f"/runner/transfers/{transfer.id}",
         )
         _move(session, transfer, TransferEvent.ENCAISSER)
@@ -97,9 +127,9 @@ def check_payout(session: Session, transfer: Transfer) -> bool:
 
 
 def housekeeping(session: Session, now: datetime | None = None) -> None:
-    """Le ménage périodique : offres expirées, transferts à faire avancer, versements à confirmer."""
+    """Le ménage périodique : réservations expirées, transferts à faire avancer, versements à confirmer."""
     with LOCK:
-        market.expire_offers(session, now)
+        market.expire_reservations(session, now)
         for transfer in session.exec(select(Transfer).where(col(Transfer.state).in_(TO_ADVANCE))).all():
             try:
                 advance(session, transfer)

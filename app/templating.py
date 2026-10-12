@@ -32,6 +32,18 @@ def long_date(value: date) -> str:
     return f"{DAYS[value.weekday()]} {day} {MONTHS[value.month - 1]} {value.year}"
 
 
+def clock(value: datetime) -> str:
+    """L'heure de Paris seule : "14:30"."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ZoneInfo("Europe/Paris")).strftime("%H:%M")
+
+
+def month_year(value: date) -> str:
+    """Le mois et l'année : "mars 2027"."""
+    return f"{MONTHS[value.month - 1]} {value.year}"
+
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # Disponible dans tous les templates (pied de page), sans avoir à le passer à chaque page.
 templates.env.globals["app_env"] = settings.app_env
@@ -39,3 +51,5 @@ templates.env.globals["ai_mode"] = settings.ai_mode
 templates.env.filters["euros"] = euros
 templates.env.filters["local_time"] = local_time
 templates.env.filters["long_date"] = long_date
+templates.env.filters["month_year"] = month_year
+templates.env.filters["clock"] = clock

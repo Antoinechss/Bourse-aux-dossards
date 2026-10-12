@@ -2,7 +2,7 @@
 
 from sqlmodel import Session
 
-from app.models import Listing, Race, Transfer, WaitlistEntry
+from app.models import Listing, Race, Transfer, Buyer
 from app.payments import orders, payouts
 from app.transfers.state import TransferState
 
@@ -71,10 +71,10 @@ class FakePayPal:
 def reserved_transfer(session: Session, race: Race) -> Transfer:
     """Un dossard à 45 € proposé à une acheteuse : le transfert attend son paiement."""
     listing = Listing(race_id=race.id, bib_number=42, seller_email="vendeur@example.com", price_cents=4500)
-    buyer = WaitlistEntry(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
+    buyer = Buyer(race_id=race.id, first_name="Marie", last_name="Martin", email="marie@example.com")
     session.add_all([listing, buyer])
     session.commit()
-    transfer = Transfer(listing_id=listing.id, buyer_id=buyer.id, state=TransferState.RESERVE)
+    transfer = Transfer(listing_id=listing.id, buyer_id=buyer.id, state=TransferState.ELIGIBLE)
     session.add(transfer)
     session.commit()
     return transfer

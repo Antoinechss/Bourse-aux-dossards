@@ -4,6 +4,7 @@ Chaque fonction lève ValueError avec un message à montrer tel quel à la perso
 """
 
 import re
+from datetime import date
 
 # Des euros entiers, puis au plus deux décimales après une virgule ou un point.
 AMOUNT = re.compile(r"(\d{1,6})(?:[.,](\d{1,2}))?", re.ASCII)
@@ -41,3 +42,14 @@ def parse_bib(text: str) -> int:
     if not re.fullmatch(r"\d{1,6}", text.strip(), re.ASCII):
         raise ValueError("Numéro de dossard invalide.")
     return int(text)
+
+
+def parse_birth_date(text: str) -> date:
+    """La date de naissance envoyée par un champ de type date : "1994-02-14"."""
+    try:
+        birth_date = date.fromisoformat(text.strip())
+    except ValueError:
+        raise ValueError("Indiquez votre date de naissance.") from None
+    if not date(1900, 1, 1) <= birth_date < date.today():
+        raise ValueError("Date de naissance invalide.")
+    return birth_date

@@ -1,40 +1,66 @@
 {% extends "base.html" %}
+{% from "components/bib.html" import bib %}
 
 {% block title %}Dossard n°{{ listing.bib_number }} — {{ race.name }}{% endblock %}
 
-{% block content %}
-<h1>Dossard n°{{ listing.bib_number }} — {{ race.name }}</h1>
-<p>Bonjour {{ buyer.first_name }}, un dossard s'est libéré pour la course du {{ race.event_date.strftime("%d/%m/%Y") }}.</p>
+{% block main %}
+<main>
+  <section class="band hero">
+    <div class="container hero__split">
+      <div class="hero__intro">
+        <p class="eyebrow">{{ race.name }} · {{ race.event_date | long_date }}</p>
+        <h1>Dossard n°{{ listing.bib_number }}</h1>
+        <p class="lead">
+          Bonjour {{ buyer.first_name }}, vos contrôles sont passés : il ne reste qu'à payer.
+          {% if status == "payable" and transfer.offer_expires_at %}Le dossard vous est réservé jusqu'à {{ transfer.offer_expires_at | clock }}.{% endif %}
+        </p>
+      </div>
+      <div class="hero__bib">{{ bib(listing.bib_number, race.name, race.distance, name="Réservé") }}</div>
+    </div>
+  </section>
 
-<table>
-  <tr><th scope="row">Prix du dossard</th><td>{{ amounts.price_cents | euros }} €</td></tr>
-  <tr><th scope="row">Frais de service</th><td>{{ amounts.service_fee_cents | euros }} €</td></tr>
-  <tr><th scope="row">Total à payer</th><td><strong>{{ amounts.total_cents | euros }} €</strong></td></tr>
-</table>
+  <section class="container section split">
+    <div class="stack">
+      <h2>Récapitulatif</h2>
+      <dl class="specs">
+        <div><dt>Prix du dossard</dt><dd>{{ amounts.price_cents | euros }} €</dd></div>
+        <div><dt>Frais de service</dt><dd>{{ amounts.service_fee_cents | euros }} €</dd></div>
+        <div class="specs__total"><dt>Total à payer</dt><dd>{{ amounts.total_cents | euros }} €</dd></div>
+      </dl>
+    </div>
 
-{% if status == "payable" %}
-<p>
-  Votre paiement est d'abord <strong>autorisé</strong> : la somme est bloquée, mais vous n'êtes débité
-  qu'une fois le dossard mis à votre nom par l'organisateur. Si le transfert est refusé,
-  l'autorisation est annulée et vous ne payez rien.
-</p>
-<div id="checkout" data-transfer-id="{{ transfer.id }}" data-client-id="{{ paypal_client_id }}">
-  <paypal-button id="paypal-button" type="pay" hidden></paypal-button>
-  <p id="checkout-message" class="muted" role="status">Chargement du bouton PayPal…</p>
-</div>
-<script src="{{ url_for('static', path='checkout.js') }}"></script>
-{# Adresse du SDK de test : Relais ne fonctionne qu'en sandbox. #}
-<script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" onload="onPayPalWebSdkLoaded()"></script>
-{% elif status == "authorized" %}
-<p class="notice">
-  Paiement autorisé : la somme est bloquée, vous n'êtes pas encore débité. Vous le serez quand
-  l'organisateur aura mis le dossard à votre nom.
-</p>
-{% elif status == "paid" %}
-<p class="notice">Paiement encaissé : le dossard est à votre nom. Bonne course !</p>
-{% elif status == "refused" %}
-<p class="error">Le transfert a été refusé. L'autorisation de paiement est annulée : vous n'avez pas été débité.</p>
-{% else %}
-<p class="error">Cette offre a expiré : le dossard a été proposé à la personne suivante sur la liste d'attente.</p>
-{% endif %}
+    <div class="stack">
+      <h2>Paiement</h2>
+      {% if status == "payable" %}
+      <p>
+        Votre paiement est d'abord <strong>autorisé</strong> : la somme est bloquée, mais vous n'êtes débité
+        qu'une fois le dossard mis à votre nom par l'organisateur. Si le transfert est refusé,
+        l'autorisation est annulée et vous ne payez rien.
+      </p>
+      <div id="checkout" class="stack" data-transfer-id="{{ transfer.id }}" data-client-id="{{ paypal_client_id }}">
+        <paypal-button id="paypal-button" type="pay" hidden></paypal-button>
+        <p id="checkout-message" class="muted" role="status">Chargement du bouton PayPal…</p>
+      </div>
+      <script src="{{ url_for('static', path='checkout.js') }}"></script>
+      {# Adresse du SDK de test : Relais ne fonctionne qu'en sandbox. #}
+      <script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" onload="onPayPalWebSdkLoaded()"></script>
+      {% elif status == "authorized" %}
+      <p class="notice">
+        Paiement autorisé : la somme est bloquée, vous n'êtes pas encore débité. Vous le serez quand
+        l'organisateur aura mis le dossard à votre nom.
+      </p>
+      <p><a class="button" href="/runner/transfers/{{ transfer.id }}">Suivre mon dossard</a></p>
+      {% elif status == "paid" %}
+      <p class="notice">Paiement encaissé : le dossard est à votre nom. Bonne course !</p>
+      {% elif status == "refused" %}
+      <p class="error">Le transfert a été refusé. L'autorisation de paiement est annulée : vous n'avez pas été débité.</p>
+      {% elif status == "ineligible" %}
+      <p class="error">Vous ne pouvez pas reprendre ce dossard : aucun paiement n'a été déclenché.</p>
+      {% else %}
+      <p class="error">Votre réservation a expiré : le dossard est de nouveau en vente. Rien n'a été débité.</p>
+      <p><a class="button button--secondary" href="/runner/races/{{ race.id }}">Retour à la course</a></p>
+      {% endif %}
+    </div>
+  </section>
+</main>
 {% endblock %}

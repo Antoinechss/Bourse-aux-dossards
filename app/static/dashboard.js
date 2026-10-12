@@ -5,7 +5,6 @@
 
 const DATA_URL = "/organizer/api/dashboard";
 const REFRESH_MS = 5000;
-const VERDICTS = { VERT: "Vert", ORANGE: "Orange", ROUGE: "Rouge" };
 
 const message = document.querySelector("#dashboard-message");
 const onlyPending = document.querySelector("#only-pending");
@@ -30,7 +29,8 @@ function button(label, onClick, kind = "") {
   return element;
 }
 
-// Valider ou refuser : le serveur applique la machine à états, puis on relit la table.
+// Accepter ou refuser le justificatif d'un acheteur : le serveur enregistre la décision, puis on relit la table.
+// Le paiement n'est pas concerné : le justificatif est indépendant de l'achat.
 async function decide(row, action) {
   message.textContent = "";
   const response = await fetch(`/organizer/api/transfers/${row.id}/${action}`, { method: "POST" });
@@ -45,15 +45,9 @@ function decisionCell(params) {
   const row = params.data;
   const cell = document.createElement("div");
   cell.className = "decision";
-  if (row.can_approve) {
+  if (row.can_decide) {
     cell.append(button("Valider", () => decide(row, "approve")));
-  }
-  if (row.can_refuse) {
-    const question = `Refuser le transfert du dossard n°${row.bib_number} ? L'autorisation de paiement sera annulée.`;
-    cell.append(button("Refuser", () => window.confirm(question) && decide(row, "refuse"), "secondary"));
-  }
-  if (!row.can_approve && !row.can_refuse) {
-    cell.textContent = row.decision;
+    cell.append(button("Refuser", () => decide(row, "refuse"), "secondary"));
   }
   return cell;
 }
@@ -84,29 +78,30 @@ const gridApi = agGrid.createGrid(document.querySelector("#transfers-grid"), {
     amount("price_cents", "Prix"),
     amount("organizer_fee_cents", "Commission orga"),
     {
-      headerName: "Verdict IA",
-      width: 110,
-      valueGetter: (params) => VERDICTS[params.data.verdict] ?? "",
-      cellRenderer: (params) => (params.value ? badge(params.value, `verdict-${params.data.verdict}`) : ""),
+      field: "proof_label",
+      headerName: "Justificatif",
+      width: 125,
+      cellRenderer: (params) => (params.value ? badge(params.value, `proof-${params.data.proof}`) : ""),
     },
     {
       field: "explanation",
-      headerName: "Explication de l'IA",
+      headerName: "Avis de l'IA sur le justificatif",
       flex: 1,
       minWidth: 260,
       wrapText: true,
       autoHeight: true,
       cellClass: "explanation",
     },
+    { field: "signal", headerName: "Signal revendeur", width: 220, wrapText: true, autoHeight: true, cellClass: "explanation" },
     {
-      headerName: "Décision",
+      headerName: "Justificatif à vérifier",
       width: 195,
       // Épinglée à droite : les boutons restent à l'écran même quand la table est plus large que la page.
       pinned: "right",
       sortable: false,
       filter: false,
       // La cellule n'est redessinée que si cette valeur change.
-      valueGetter: (params) => `${params.data.can_approve}-${params.data.can_refuse}-${params.data.decision}`,
+      valueGetter: (params) => String(params.data.can_decide),
       cellRenderer: decisionCell,
     },
   ],
@@ -124,9 +119,9 @@ const gridApi = agGrid.createGrid(document.querySelector("#transfers-grid"), {
   pagination: true,
   paginationPageSize: 20,
   paginationPageSizeSelector: [20, 50, 100],
-  // Un filtre de plus, hors colonnes : la case « Seulement les transferts à décider ».
+  // Un filtre de plus, hors colonnes : la case « Seulement les justificatifs à vérifier ».
   isExternalFilterPresent: () => onlyPending.checked,
-  doesExternalFilterPass: (node) => node.data.can_approve,
+  doesExternalFilterPass: (node) => node.data.can_decide,
   localeText: {
     noRowsToShow: "Aucun transfert",
     filterOoo: "Filtrer…",

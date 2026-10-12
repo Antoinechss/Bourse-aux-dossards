@@ -13,7 +13,7 @@ from app.models import (
     Transfer,
     Verdict,
     Verification,
-    WaitlistEntry,
+    Buyer,
 )
 from app.payments import ledger, service
 from app.payments.client import PayPalError
@@ -50,7 +50,7 @@ def transfer(session, race, paypal):
 
 def another_transfer(session, race, bib_number: int, state: TransferState) -> Transfer:
     listing = Listing(race_id=race.id, bib_number=bib_number, seller_email="autre@example.com", price_cents=2000)
-    buyer = WaitlistEntry(race_id=race.id, first_name="Karim", last_name="Benali", email=f"karim{bib_number}@example.com")
+    buyer = Buyer(race_id=race.id, first_name="Karim", last_name="Benali", email=f"karim{bib_number}@example.com")
     session.add_all([listing, buyer])
     session.commit()
     transfer = Transfer(listing_id=listing.id, buyer_id=buyer.id, state=state)
